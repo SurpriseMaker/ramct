@@ -19,7 +19,12 @@ class Show():
         MAX_ITEMS_EACH_CATEGORY = 10
         markers = 'o'
         
-        df = pd.read_excel(excel_path)
+        try:
+            df = pd.read_excel(excel_path)
+        except FileNotFoundError:
+            print(f"draw_ram_trend error: could not found: {excel_path}")
+            return
+
         df_column_list = df.columns.to_list()
         print(f"df={df}")
         fig, axs = plt.subplots(4, 2, figsize=(12, 25))
@@ -89,12 +94,12 @@ class Show():
 
         df = pd.read_excel(excel_path)
         df_column_list = df.columns.to_list()
-        fig, axs = plt.subplots(2, 2, figsize=(12, 12))
+        fig, axs = plt.subplots(int(len(df_column_list)/3), 3, figsize=(12, 4 * int(len(df_column_list)/3)))
         
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(df_column_list[1:]):
-            row = int(index /2)
-            coloum = (index) %2
+            row = int(index /3)
+            coloum = (index) %3
             ax = axs[row][coloum]
             ax.set_title(y_labels)
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))

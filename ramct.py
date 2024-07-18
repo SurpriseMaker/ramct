@@ -4,8 +4,9 @@ import os, sys
 from mi_parser import ParseMeminfo
 from show import Show
 from analysis import Analysis
+from killinfo_parser import KillinfoParser
 
-VERSION=2.0
+VERSION=2.1
 if __name__ == '__main__':
     argv = sys.argv[1:]
     dir=os.getcwd()
@@ -27,7 +28,25 @@ if __name__ == '__main__':
         if opt in ['-d']:
             ref_diff = opt_value
 
-    output_excel_path = ParseMeminfo.get_output_excel_path(dir)
-    ParseMeminfo.parseAllFiles(dir, output_excel_path)
-    Analysis.analyze(dir, output_excel_path, ref_cov, ref_diff)
-    Show.draw_ram_trend(dir, output_excel_path)
+    # Ram Consumption Analysis
+    print("##########################################")
+    print("##########################################")
+    print("Beginning of Ram Consumption Analysis....")
+    meminfo_excel_path = ParseMeminfo.parseAllFiles(dir)
+    if meminfo_excel_path:
+        Analysis.analyze(dir, meminfo_excel_path, ref_cov, ref_diff)
+        Show.draw_ram_trend(dir, meminfo_excel_path)
+    else:
+        print("NOT FOUND ANY MEMORY INFO DATA!!!")
+    print("End of Ram Consumption Analysis.")
+    print("##########################################")
+    print("##########################################")
+    
+    print("Beginning of Kill infos Analysis....")
+    # Kill infos
+    killinfo_excel_path = KillinfoParser.parse_killinfo(dir)
+    if killinfo_excel_path:
+        Show.draw_killing(dir, killinfo_excel_path)
+    else:
+        print("NOT FOUND ANY KILL INFO DATA!!!")
+    print("End of Kill infos Analysis.")

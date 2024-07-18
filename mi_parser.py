@@ -60,7 +60,7 @@ class ParseMeminfo():
         return data
 
     @staticmethod
-    def parseAllFiles(dir, excel_path, singal_progress=None):
+    def parseAllFiles(dir, singal_progress=None):
         path_list=ParseMeminfo.get_all_dump_file_paths(dir)
         data_list_all = []
         for path in path_list:
@@ -69,6 +69,7 @@ class ParseMeminfo():
             if singal_progress:
                 singal_progress.emit(path)
         
+        excel_path = ParseMeminfo.get_output_excel_path(dir)
         if data_list_all:
             df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
             # columns = list(df_all)
@@ -82,12 +83,14 @@ class ParseMeminfo():
             # df_reindex = df_all.reindex(columns=columns)
             df_all.to_excel(excel_path, index=False)
         else:
-            print("Overall data, No match.")
+            print("Not found any valuable meminfo! Please check if meminfo logs exists or not.")
+            excel_path = None
+        
+        return excel_path
 
     def get_output_excel_path(dir):
         keyword = os.path.basename(dir)
-        file_path = os.path.join(dir,
-                                       f"{keyword}_output.xlsx")
+        file_path = os.path.join(dir, f"{keyword}_meminfo.xlsx")
         return file_path
 
     @staticmethod 
@@ -95,11 +98,10 @@ class ParseMeminfo():
         print(f"kwargs = {kwargs}")
         singal_progress = kwargs['progress_callback']
         dir = kwargs['dir']
-        output_excel_path = ParseMeminfo.get_output_excel_path(dir)
 
-        ParseMeminfo.parseAllFiles(dir, output_excel_path, singal_progress)
+        return ParseMeminfo.parseAllFiles(dir, singal_progress)
 
 if __name__ == '__main__':
     dir=os.getcwd()
     output_excel_path = ParseMeminfo.get_output_excel_path(dir)
-    ParseMeminfo.parseAllFiles(dir, output_excel_path)
+    ParseMeminfo.parseAllFiles(dir)

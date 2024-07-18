@@ -71,12 +71,20 @@ class Analysis():
     def drop_heavy_labels_data(dataframe:pd.DataFrame):
         columns_to_del = ['Native', 'System','Persistent','PersistentService',
                              'Foreground','Visible','Perceptible']
-        dataframe = dataframe.drop(columns=columns_to_del)
+        try:
+            dataframe = dataframe.drop(columns=columns_to_del)
+        except KeyError:
+            print(f"{columns_to_del} not found")
         return dataframe
         
     @staticmethod
     def analyze(dir, input_excel_path, ref_cov, ref_diff):
-        df = pd.read_excel(input_excel_path)
+        try:
+            df = pd.read_excel(input_excel_path)
+        except FileNotFoundError:
+            print(f"analyze error: could not found: {input_excel_path}")
+            return
+
         exception_data_list = Analysis.detect_abnormal_data(df, ref_cov, ref_diff)
         if exception_data_list:
             df = pd.DataFrame(exception_data_list)
