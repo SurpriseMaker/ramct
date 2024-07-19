@@ -7,6 +7,22 @@ class Show():
         
     def get_html_path(dir):
         return os.path.join(dir, 'RamConsumption.html')
+    
+    def gen_html_content(h1: str):
+        # 将HTML代码嵌入到HTML模板中
+        template = """
+        <html>
+        <head>
+        <title>RAM C.T. Report</title>
+        </head>
+        <body>
+        <h1>{}</h1>
+        <div></div>
+        </body>
+        </html>
+        """
+        output = template.format(h1)
+        return output
 
     def get_color(index):
         all_colors = ['blue', 'green',  'c', 'k', 'r', 'm', 'pink',
@@ -69,26 +85,14 @@ class Show():
         # 将图表转换为HTML
         html_code = df.to_html()
 
-        # 将HTML代码嵌入到HTML模板中
-        template = """
-        <html>
-        <head>
-        <title>RAM Consumption Trend</title>
-        </head>
-        <body>
-        <h1>RAM Consumption Trend</h1>
-        <div>{}</div>
-        </body>
-        </html>
-        """
-
-        output = template.format(html_code)
+        h1 = "RAM Consumption Trend"
+        html_content = Show.gen_html_content(h1)
 
         html_path = Show.get_html_path(dir)
         # 将HTML网页保存到文件
         with open(html_path, 'w') as file:
+            file.write(html_content)
             mpld3.save_html(fig, file)
-            file.write(output)
 
     def draw_killing(dir, excel_path):
         markers = 'o'
@@ -110,8 +114,11 @@ class Show():
             
         plt.tight_layout()
         
-        html_path = os.path.join(dir, 'KillInfo.html')
-        with open(html_path, 'w') as file:
+        h1 = "Kill Information"
+        html_content = Show.gen_html_content(h1)
+        html_path = Show.get_html_path(dir)
+        with open(html_path, 'a') as file:
+            file.write(html_content)
             mpld3.save_html(fig, file)
             
     def draw_launch_info(dir, excel_path):
@@ -134,6 +141,9 @@ class Show():
             
         plt.tight_layout()
         
-        html_path = os.path.join(dir, 'LaunchInfo.html')
-        with open(html_path, 'w') as file:
+        h1 = "App Launch Information"
+        html_content = Show.gen_html_content(h1)
+        html_path = Show.get_html_path(dir)
+        with open(html_path, 'a') as file:
+            file.write(html_content)
             mpld3.save_html(fig, file)

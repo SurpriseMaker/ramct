@@ -45,9 +45,10 @@ class LaunchInfoParser():
         wp_count = len(df[df['process_launch_type']=='wp'].index)
         
         wp_ratio = float(wp_count)/total_launch_count
+        data['warm_process_ratio'] = wp_ratio
         data['total_launch_count'] = total_launch_count
-        data['wp_count'] = wp_count
-        data['wp_ratio'] = wp_ratio
+        data['warm_process_count'] = wp_count
+
         return data
     
     @staticmethod

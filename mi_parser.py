@@ -90,7 +90,7 @@ class ParseMeminfo():
 
     def get_output_excel_path(dir):
         keyword = os.path.basename(dir)
-        file_path = os.path.join(dir, f"{keyword}_meminfo.xlsx")
+        file_path = os.path.join(dir, f"{keyword}_mi.xlsx")
         return file_path
 
     @staticmethod 

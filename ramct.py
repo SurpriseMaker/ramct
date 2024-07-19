@@ -5,6 +5,7 @@ from mi_parser import ParseMeminfo
 from show import Show
 from analysis import Analysis
 from killinfo_parser import KillinfoParser
+from launchinfo_parser import LaunchInfoParser
 
 VERSION=2.1
 if __name__ == '__main__':
@@ -50,3 +51,14 @@ if __name__ == '__main__':
     else:
         print("NOT FOUND ANY KILL INFO DATA!!!")
     print("End of Kill infos Analysis.")
+    print("##########################################")
+    print("##########################################")
+    
+    # Launch infos
+    print("Beginning of launch infos Analysis....")
+    launchinfo_excel_path = LaunchInfoParser.parse_launchinfo(dir)
+    if launchinfo_excel_path:
+        Show.draw_launch_info(dir, launchinfo_excel_path)
+    else:
+        print("NOT FOUND ANY LAUNCH INFO DATA!!!")
+    print("END of Launch Infos Analysis.")
