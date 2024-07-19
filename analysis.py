@@ -45,11 +45,13 @@ class Analysis():
                     exception_data_list.append(data)
         return exception_data_list
     
+    @staticmethod
     def clean_data(dataframe:pd.DataFrame):
         dataframe = Analysis.drop_non_perceptible_data(dataframe)
         dataframe = Analysis.drop_heavy_labels_data(dataframe)
         return dataframe
-            
+
+    @staticmethod
     def drop_non_perceptible_data(dataframe:pd.DataFrame):
         light_labels_list = ['PerceptibleMedium', 'AServices', 'BServices','Cached','Previous']
         columns = list(dataframe)
@@ -67,7 +69,8 @@ class Analysis():
             dataframe = dataframe.drop(columns=columns_to_del)
             
         return dataframe
-    
+
+    @staticmethod
     def drop_heavy_labels_data(dataframe:pd.DataFrame):
         columns_to_del = ['Native', 'System','Persistent','PersistentService',
                              'Foreground','Visible','Perceptible']

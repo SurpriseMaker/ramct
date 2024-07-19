@@ -32,10 +32,7 @@ class KillinfoParser():
             print(f"grep duration seconds={end_second - start_second}")
             with open(output_txt_path, "r") as f:
                 content = f.readlines()
-                start_second = time.time()
                 kill_info_dict = KillinfoParser.get_kill_info(content)
-                end_second = time.time()
-                print(f"get_kill_info duration seconds={end_second - start_second}")
                 data.update(kill_info_dict)
                 data_list_all.append(data)
         
@@ -97,6 +94,7 @@ class KillinfoParser():
         file_path = os.path.join(dir, f"{keyword}_killinfo.xlsx")
         return file_path
 
+    @staticmethod
     def parse_killinfo(log_path):
         pattern = r'\d{4}-\d{2}-\d{2}'
         path_list=KillinfoParser.get_all_log_paths(log_path, pattern)

@@ -4,10 +4,11 @@ import os
 import pandas as pd
 
 class Show():
-        
+    @staticmethod 
     def get_html_path(dir):
         return os.path.join(dir, 'RamConsumption.html')
     
+    @staticmethod 
     def gen_html_content(h1: str):
         # 将HTML代码嵌入到HTML模板中
         template = """
@@ -24,6 +25,7 @@ class Show():
         output = template.format(h1)
         return output
 
+    @staticmethod 
     def get_color(index):
         all_colors = ['blue', 'green',  'c', 'k', 'r', 'm', 'pink',
                       'lime','tomato', 'brown', 'chocolate', 'darkred',
@@ -33,7 +35,8 @@ class Show():
             index = index - len_all_colors
             
         return all_colors[index]
-        
+    
+    @staticmethod 
     def draw_ram_trend(dir, excel_path):
         MAX_ITEMS_EACH_CATEGORY = 10
         markers = 'o'
@@ -60,7 +63,7 @@ class Show():
         for index1, label in enumerate(y_labels_list):
             if index1 >= len(y_labels_list) -1:
                 break
-            if not (label in df_column_list):
+            if label not in df_column_list:
                 continue
             start = df_column_list.index(label) + 1
             end = df_column_list.index(y_labels_list[index1+1])
@@ -94,6 +97,7 @@ class Show():
             file.write(html_content)
             mpld3.save_html(fig, file)
 
+    @staticmethod 
     def draw_killing(dir, excel_path):
         markers = 'o'
 
@@ -120,7 +124,8 @@ class Show():
         with open(html_path, 'a') as file:
             file.write(html_content)
             mpld3.save_html(fig, file)
-            
+    
+    @staticmethod 
     def draw_launch_info(dir, excel_path):
         markers = 'o'
 

@@ -7,7 +7,8 @@ from analysis import Analysis
 from killinfo_parser import KillinfoParser
 from launchinfo_parser import LaunchInfoParser
 
-VERSION=2.1
+VERSION=3.0
+SPLIT_LINE = "##########################################\n##########################################"
 if __name__ == '__main__':
     argv = sys.argv[1:]
     dir=os.getcwd()
@@ -30,18 +31,16 @@ if __name__ == '__main__':
             ref_diff = opt_value
 
     # Ram Consumption Analysis
-    print("##########################################")
-    print("##########################################")
+    print(SPLIT_LINE)
     print("Beginning of Ram Consumption Analysis....")
-    meminfo_excel_path = ParseMeminfo.parseAllFiles(dir)
+    meminfo_excel_path = ParseMeminfo.parse_all_files(dir)
     if meminfo_excel_path:
         Analysis.analyze(dir, meminfo_excel_path, ref_cov, ref_diff)
         Show.draw_ram_trend(dir, meminfo_excel_path)
     else:
         print("NOT FOUND ANY MEMORY INFO DATA!!!")
     print("End of Ram Consumption Analysis.")
-    print("##########################################")
-    print("##########################################")
+    print(SPLIT_LINE)
     
     print("Beginning of Kill infos Analysis....")
     # Kill infos
@@ -51,8 +50,7 @@ if __name__ == '__main__':
     else:
         print("NOT FOUND ANY KILL INFO DATA!!!")
     print("End of Kill infos Analysis.")
-    print("##########################################")
-    print("##########################################")
+    print(SPLIT_LINE)
     
     # Launch infos
     print("Beginning of launch infos Analysis....")
@@ -62,3 +60,5 @@ if __name__ == '__main__':
     else:
         print("NOT FOUND ANY LAUNCH INFO DATA!!!")
     print("END of Launch Infos Analysis.")
+    
+    print("Finished.")

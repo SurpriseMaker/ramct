@@ -4,7 +4,7 @@ import pandas as pd
 
 class ParseMeminfo():
     @staticmethod
-    def parseAndGetData(content):
+    def parse_and_get_data(content):
         end_keyword = 'Total PSS by category'
         data = {}
         start_fetch = False
@@ -19,14 +19,13 @@ class ParseMeminfo():
                     size_kb = int(match.group(1).replace(',', ''))
                     #print(f"match.group(1)={match.group(1)}, match.group(2)={match.group(2)}")
                     name = match.group(2).split('(')[0].replace(' ', '')
-                    if not (name in data) :
+                    if name not in data:
                         data[name] = size_kb
                         #print(f"{name} --- {size_kb}")
             else:
                 match = re.findall(r"Total PSS by OOM adjustment:", line)
                 if match:
                     start_fetch = True
-                    continue
         
         return data
 
@@ -46,12 +45,12 @@ class ParseMeminfo():
         return found_file_path_list
 
     @staticmethod
-    def parseOneFile(file_path: str):
+    def parse_one_file(file_path: str):
         file_name = os.path.basename(file_path)
         data = {'file_name':file_name}
         with open(file_path, "r") as f:
             content = f.readlines()
-            data.update(ParseMeminfo.parseAndGetData(content))
+            data.update(ParseMeminfo.parse_and_get_data(content))
         if data:
             pass
         else:
@@ -60,11 +59,11 @@ class ParseMeminfo():
         return data
 
     @staticmethod
-    def parseAllFiles(dir, singal_progress=None):
+    def parse_all_files(dir, singal_progress=None):
         path_list=ParseMeminfo.get_all_dump_file_paths(dir)
         data_list_all = []
         for path in path_list:
-            data = ParseMeminfo.parseOneFile(path)
+            data = ParseMeminfo.parse_one_file(path)
             data_list_all.append(data)
             if singal_progress:
                 singal_progress.emit(path)
@@ -99,9 +98,9 @@ class ParseMeminfo():
         singal_progress = kwargs['progress_callback']
         dir = kwargs['dir']
 
-        return ParseMeminfo.parseAllFiles(dir, singal_progress)
+        return ParseMeminfo.parse_all_files(dir, singal_progress)
 
 if __name__ == '__main__':
     dir=os.getcwd()
     output_excel_path = ParseMeminfo.get_output_excel_path(dir)
-    ParseMeminfo.parseAllFiles(dir)
+    ParseMeminfo.parse_all_files(dir)

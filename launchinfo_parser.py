@@ -57,6 +57,7 @@ class LaunchInfoParser():
         file_path = os.path.join(dir, f"{keyword}_launch_info.xlsx")
         return file_path
     
+    @staticmethod
     def parse_launchinfo(log_path):
         pattern = r'\d{4}-\d{2}-\d{2}'
         path_list=LaunchInfoParser.get_all_log_paths(log_path, pattern)
