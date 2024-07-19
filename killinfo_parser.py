@@ -4,9 +4,6 @@ import pandas as pd
 from show import Show
 import time
 
-module_path = os.path.dirname(os.path.abspath(__file__))
-grep_exe = f"{module_path}/grep/grep.exe"
-
 class KillinfoParser():
     @staticmethod
     def get_all_log_paths(file_path: str, pattern):

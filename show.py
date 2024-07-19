@@ -5,6 +5,9 @@ import pandas as pd
 
 class Show():
         
+    def get_html_path(dir):
+        return os.path.join(dir, 'RamConsumption.html')
+
     def get_color(index):
         all_colors = ['blue', 'green',  'c', 'k', 'r', 'm', 'pink',
                       'lime','tomato', 'brown', 'chocolate', 'darkred',
@@ -62,11 +65,9 @@ class Show():
             ax.tick_params(axis='x', labelrotation=30)
 
         plt.tight_layout()
-        #plt.Show()
         
         # 将图表转换为HTML
         html_code = df.to_html()
-        #mpld3.save_html(fig, 'plot.html')
 
         # 将HTML代码嵌入到HTML模板中
         template = """
@@ -83,7 +84,7 @@ class Show():
 
         output = template.format(html_code)
 
-        html_path = os.path.join(dir, 'RamConsumption.html')
+        html_path = Show.get_html_path(dir)
         # 将HTML网页保存到文件
         with open(html_path, 'w') as file:
             mpld3.save_html(fig, file)
@@ -110,5 +111,29 @@ class Show():
         plt.tight_layout()
         
         html_path = os.path.join(dir, 'KillInfo.html')
+        with open(html_path, 'w') as file:
+            mpld3.save_html(fig, file)
+            
+    def draw_launch_info(dir, excel_path):
+        markers = 'o'
+
+        df = pd.read_excel(excel_path)
+        df_column_list = df.columns.to_list()
+        fig, axs = plt.subplots(int(len(df_column_list)/3)+1, 3, figsize=(12, 4 * int(len(df_column_list)/3)))
+        
+        x_labels = df_column_list[0]
+        for index, y_labels in enumerate(df_column_list[1:]):
+            row = int(index /3)
+            coloum = (index) %3
+            ax = axs[row][coloum]
+            ax.set_title(y_labels)
+            ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
+            
+        for ax in axs.flatten():
+            ax.tick_params(axis='x', labelrotation=30)
+            
+        plt.tight_layout()
+        
+        html_path = os.path.join(dir, 'LaunchInfo.html')
         with open(html_path, 'w') as file:
             mpld3.save_html(fig, file)
