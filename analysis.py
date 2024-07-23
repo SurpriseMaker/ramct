@@ -6,28 +6,36 @@ class Analysis():
     @staticmethod
     def get_abnormal_excel_path(dir):
         keyword = os.path.basename(dir)
-        file_path = os.path.join(dir,
-                                       f"{keyword}_abnormal.xlsx")
+        file_path = os.path.join(dir,f"{keyword}_abnormal.xlsx")
         return file_path
     
     @staticmethod
     # coefficient of variation
-    def caculate_cov(data_list):
+    def calculate_cov(data_list):
+        if data_list.empty:
+            raise ValueError("The input list is empty.")
+    
+        if not all(isinstance(x, (int, float)) for x in data_list):
+            raise TypeError("All elements in the input list must be numeric.")
+
         mean_value = np.mean(data_list)
+        if mean_value == 0:
+            raise ZeroDivisionError("The mean value is zero, leading to division by zero.")
         
         standard_deviation = np.std(data_list)
-        
         cov = standard_deviation/mean_value
         return cov
     
     @staticmethod
     def detect_abnormal_data(dataframe:pd.DataFrame, ref_cov, ref_diff):
         dataframe = Analysis.clean_data(dataframe)
-        exception_data_list = []
-        columns = list(dataframe)
+        abnormal_data_list = []
+        columns = list(dataframe.columns)
         for col in columns[1:]:
             df_col = dataframe[col].dropna()
-            cov = Analysis.caculate_cov(df_col)
+            if df_col.empty:
+                continue
+            cov = Analysis.calculate_cov(df_col)
             if cov > ref_cov:
                 val_min = np.min(df_col)
                 val_max = np.max(df_col)
@@ -42,8 +50,8 @@ class Analysis():
                     data['max'] = val_max
                     data['initial'] = val_initial
                     data['end'] = val_end
-                    exception_data_list.append(data)
-        return exception_data_list
+                    abnormal_data_list.append(data)
+        return abnormal_data_list
     
     @staticmethod
     def clean_data(dataframe:pd.DataFrame):
@@ -56,14 +64,9 @@ class Analysis():
         light_labels_list = ['PerceptibleMedium', 'AServices', 'BServices','Cached','Previous']
         columns = list(dataframe)
         col_index=None
-        for label in light_labels_list:
-            for col_name in columns:
-                if label == col_name:
-                    col_index=columns.index(col_name)
-                    print(f"col_index={col_index}")
-                    break
-            if col_index:
-                break
+         # Find the first matching column index
+        col_index = next((columns.index(col_name) for col_name in light_labels_list 
+                          if col_name in columns), None)
         if col_index:
             columns_to_del = columns[col_index:]
             dataframe = dataframe.drop(columns=columns_to_del)

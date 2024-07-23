@@ -1,5 +1,6 @@
 import getopt
 import os, sys
+import logging
 
 from mi_parser import ParseMeminfo
 from show import Show
@@ -9,6 +10,23 @@ from launchinfo_parser import LaunchInfoParser
 
 VERSION=3.0
 SPLIT_LINE = "##########################################\n##########################################"
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='ramct.log')
+
+def analyze_data(parser, analysis_func, show_func, data_type):
+    logging.info(f"Beginning of {data_type} Analysis....")
+    try:
+        excel_path = parser(dir)
+        if excel_path:
+            analysis_func(dir, excel_path, ref_cov, ref_diff)
+            show_func(dir, excel_path)
+        else:
+            logging.warning(f"NOT FOUND ANY {data_type.upper()} INFO DATA!!!")
+    except Exception as e:
+        logging.error(f"Error during {data_type} analysis: {e}")
+    logging.info(f"End of {data_type} Analysis.")
+
 if __name__ == '__main__':
     argv = sys.argv[1:]
     dir=os.getcwd()
@@ -17,48 +35,35 @@ if __name__ == '__main__':
  
     print(f"ramct version:{VERSION}")
     try:
-        opts, args = getopt.getopt(argv, "-p:-c:-d:")  # 短选项模式
-    except:
+        opts, args = getopt.getopt(argv, "p:c:d:")  # 短选项模式
+    except getopt.GetoptError:
         print("Error in get option")
+        sys.exit(1)
 
     print(f"--opts={opts}\n--arg={args}")
     for opt, opt_value in opts:
         if opt in ['-p']:
             dir = opt_value
         if opt in ['-c']:
-            ref_cov = opt_value
+            try:
+                ref_cov = float(opt_value)
+            except ValueError:
+                print("Error: -c option requires a float value")
+                sys.exit(1)
         if opt in ['-d']:
-            ref_diff = opt_value
+            try:
+                ref_diff = int(opt_value)
+            except ValueError:
+                print("Error: -d option requires an integer value")
+                sys.exit(1)
 
     # Ram Consumption Analysis
-    print(SPLIT_LINE)
-    print("Beginning of Ram Consumption Analysis....")
-    meminfo_excel_path = ParseMeminfo.parse_all_files(dir)
-    if meminfo_excel_path:
-        Analysis.analyze(dir, meminfo_excel_path, ref_cov, ref_diff)
-        Show.draw_ram_trend(dir, meminfo_excel_path)
-    else:
-        print("NOT FOUND ANY MEMORY INFO DATA!!!")
-    print("End of Ram Consumption Analysis.")
-    print(SPLIT_LINE)
+    analyze_data(ParseMeminfo.parse_all_files, Analysis.analyze, Show.draw_ram_trend, "Ram Consumption")
     
-    print("Beginning of Kill infos Analysis....")
-    # Kill infos
-    killinfo_excel_path = KillinfoParser.parse_killinfo(dir)
-    if killinfo_excel_path:
-        Show.draw_killing(dir, killinfo_excel_path)
-    else:
-        print("NOT FOUND ANY KILL INFO DATA!!!")
-    print("End of Kill infos Analysis.")
-    print(SPLIT_LINE)
+    # Kill infos Analysis
+    analyze_data(KillinfoParser.parse_killinfo, lambda *args: None, Show.draw_killing, "Kill infos")
     
-    # Launch infos
-    print("Beginning of launch infos Analysis....")
-    launchinfo_excel_path = LaunchInfoParser.parse_launchinfo(dir)
-    if launchinfo_excel_path:
-        Show.draw_launch_info(dir, launchinfo_excel_path)
-    else:
-        print("NOT FOUND ANY LAUNCH INFO DATA!!!")
-    print("END of Launch Infos Analysis.")
+    # Launch infos Analysis
+    analyze_data(LaunchInfoParser.parse_launchinfo, lambda *args: None, Show.draw_launch_info, "Launch infos")
     
-    print("Finished.")
+    logging.info("Finished.")

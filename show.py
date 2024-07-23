@@ -1,8 +1,12 @@
 import matplotlib.pyplot as plt
 import mpld3
 import os
+import html
+import logging
 import pandas as pd
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='ramct.log')
 class Show():
     @staticmethod 
     def get_html_path(dir):
@@ -22,7 +26,14 @@ class Show():
         </body>
         </html>
         """
-        output = template.format(h1)
+        # Sanitize the input to prevent HTML injection
+        sanitized_h1 = html.escape(h1)
+        try:
+            output = template.format(sanitized_h1)
+        except Exception as e:
+            # Handle any potential exceptions during string formatting
+            output = template.format("Error: Invalid input")
+            print(f"Error generating HTML content: {e}")
         return output
 
     @staticmethod 
@@ -31,9 +42,12 @@ class Show():
                       'lime','tomato', 'brown', 'chocolate', 'darkred',
                       'gold', 'greenyellow']
         len_all_colors = len(all_colors)
-        while index >= len_all_colors:
-            index = index - len_all_colors
-            
+        
+        # Ensure index is non-negative
+        if index < 0:
+            raise ValueError("Index must be non-negative")
+  
+        index = index % len_all_colors
         return all_colors[index]
     
     @staticmethod 
@@ -66,13 +80,16 @@ class Show():
             if label not in df_column_list:
                 continue
             start = df_column_list.index(label) + 1
-            end = df_column_list.index(y_labels_list[index1+1])
+            end = df_column_list.index(y_labels_list[index1 + 1]) if index1 < len(y_labels_list) - 1 else len(df_column_list)
             end = min(end, start + MAX_ITEMS_EACH_CATEGORY)
 
             row = int((index1 + 1) /2)
-            coloum = (index1 +1) %2
-            print(f"label={label}, start={start}, end = {end}, row = {row}, column = {coloum}")
-            ax = axs[row][coloum]
+            column = (index1 +1) %2
+            if row >= 4 or column >= 2:
+                print(f"Skipping plot for label {label} due to subplot index out of bounds")
+                continue
+            print(f"label={label}, start={start}, end = {end}, row = {row}, column = {column}")
+            ax = axs[row][column]
             title = f"{label}, KBs by process"
             ax.set_title(title)
             for index2 in range(start, end):
@@ -84,18 +101,23 @@ class Show():
             ax.tick_params(axis='x', labelrotation=30)
 
         plt.tight_layout()
-        
-        # 将图表转换为HTML
-        html_code = df.to_html()
 
         h1 = "RAM Consumption Trend"
         html_content = Show.gen_html_content(h1)
 
+        # Ensure dir is defined and valid
+        if dir is None or not os.path.isdir(dir):
+            logging.error("Invalid directory path")
+            raise ValueError("Invalid directory path")
+
         html_path = Show.get_html_path(dir)
         # 将HTML网页保存到文件
-        with open(html_path, 'w') as file:
-            file.write(html_content)
-            mpld3.save_html(fig, file)
+        try:
+            with open(html_path, 'w') as file:
+                file.write(html_content)
+                mpld3.save_html(fig, file)
+        except Exception as e:
+            logging.error(f"Error writing to file: {e}")
 
     @staticmethod 
     def draw_killing(dir, excel_path):

@@ -50,32 +50,39 @@ class KillinfoParser():
         iopsi_full_max = 0
         cpupsi_max = 0
         data = {}
+        kill_pattern = re.compile(r"killinfo: \[(\d+)\,(\d+)\,(\d+)\,")
+        psi_pattern  = re.compile(r"(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\]")
         for line in content:
-            pattern = r"killinfo: \[(\d+)\,(\d+)\,(\d+)\,"
-            match = re.search(pattern, line)
-            if match:
-                killed_adj = int(match.group(3))
-                kill_depth = min(kill_depth, killed_adj)
-                if killed_adj < 201:
-                    heavy_kill_count += 1
-                elif killed_adj < 920:
-                    critical_kill_count += 1
-                else:
-                    medium_kill_count += 1
+            kill_match = kill_pattern.search(line)
+            psi_match = psi_pattern.search(line)
+
+            if kill_match:
+                try:
+                    killed_adj = int(kill_match.group(3))
+                    kill_depth = min(kill_depth, killed_adj)
+                    if killed_adj < 201:
+                        heavy_kill_count += 1
+                    elif killed_adj < 920:
+                        critical_kill_count += 1
+                    else:
+                        medium_kill_count += 1
+                except (ValueError, IndexError) as e:
+                    print(f"Error processing kill info in line: {line}. Error: {e}")
                     
-            pattern2 = r"(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\]"
-            match2 = re.search(pattern2, line)
-            if match2:
-                mempsi_some = float(match2.group(1))
-                mempsi_some_max = max(mempsi_some_max, mempsi_some)
-                mempsi_full = float(match2.group(2))
-                mempsi_full_max = max(mempsi_full_max, mempsi_full)
-                iopsi_some = float(match2.group(3))
-                iopsi_some_max = max(iopsi_some_max, iopsi_some)
-                iopsi_full = float(match2.group(4))
-                iopsi_full_max = max(iopsi_full_max, iopsi_full)
-                cpupsi = float(match2.group(5))
-                cpupsi_max = max(cpupsi_max, cpupsi)
+            if psi_match:
+                try:
+                    mempsi_some = float(psi_match.group(1))
+                    mempsi_some_max = max(mempsi_some_max, mempsi_some)
+                    mempsi_full = float(psi_match.group(2))
+                    mempsi_full_max = max(mempsi_full_max, mempsi_full)
+                    iopsi_some = float(psi_match.group(3))
+                    iopsi_some_max = max(iopsi_some_max, iopsi_some)
+                    iopsi_full = float(psi_match.group(4))
+                    iopsi_full_max = max(iopsi_full_max, iopsi_full)
+                    cpupsi = float(psi_match.group(5))
+                    cpupsi_max = max(cpupsi_max, cpupsi)
+                except (ValueError, IndexError) as e:
+                    print(f"Error processing psi info in line: {line}. Error: {e}")
                     
         data['heavy_kill'] = heavy_kill_count
         data['critical_kill'] = critical_kill_count
