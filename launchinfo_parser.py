@@ -7,7 +7,7 @@ import pandas as pd
 from show import Show
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='ramct.log')
 class LaunchInfoParser():
     @staticmethod
     def get_all_log_paths(file_path: str, pattern):
@@ -76,6 +76,7 @@ class LaunchInfoParser():
             data['warm_process_ratio'] = 0.0
             data['total_launch_count'] = 0
             data['warm_process_count'] = 0
+            return data
         else:
             try:
                 wp_count = len(df[df['process_launch_type'] == 'wp'].index)

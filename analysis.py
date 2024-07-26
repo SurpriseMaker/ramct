@@ -10,6 +10,12 @@ class Analysis():
         return file_path
     
     @staticmethod
+    def get_abnormal_json_path(dir):
+        keyword = os.path.basename(dir)
+        file_path = os.path.join(dir,f"{keyword}_abnormal.json")
+        return file_path
+
+    @staticmethod
     # coefficient of variation
     def calculate_cov(data_list):
         if data_list.empty:
@@ -91,11 +97,13 @@ class Analysis():
             print(f"analyze error: could not found: {input_excel_path}")
             return
 
-        exception_data_list = Analysis.detect_abnormal_data(df, ref_cov, ref_diff)
-        if exception_data_list:
-            df = pd.DataFrame(exception_data_list)
+        abnormal_data_list = Analysis.detect_abnormal_data(df, ref_cov, ref_diff)
+        if abnormal_data_list:
+            df = pd.DataFrame(abnormal_data_list)
             excel_path = Analysis.get_abnormal_excel_path(dir)
             df.to_excel(excel_path, index=False)
+            json_path = Analysis.get_abnormal_json_path(dir)
+            df.to_json(json_path, orient='records')
             
 if __name__ == '__main__':
     dir=os.getcwd()
