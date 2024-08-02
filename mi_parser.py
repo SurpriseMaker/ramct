@@ -1,11 +1,9 @@
 import os
 import re
 import fnmatch
-import logging
 import pandas as pd
+from log_utils import log
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='ramct.log')
 class ParseMeminfo():
     @staticmethod
     def parse_and_get_data(content):
@@ -39,7 +37,7 @@ class ParseMeminfo():
             for file in fnmatch.filter(file_lst, f'*{key}*'):
                 found = os.path.join(path, file)
                 found_file_path_list.append(found)
-                logging.info(f"找到路径: {found}")
+                log.info(f"找到路径: {found}")
 
         return found_file_path_list
 
@@ -52,17 +50,17 @@ class ParseMeminfo():
             with open(file_path, "r") as f:
                 content = f.readlines()
         except FileNotFoundError:
-            logging.error(f"File not found: {file_path}")
+            log.error(f"File not found: {file_path}")
             return None
         except IOError as e:
-            logging.error(f"Error reading file: {file_path}, {e}")
+            log.error(f"Error reading file: {file_path}, {e}")
             return None
         
         parsed_data = ParseMeminfo.parse_and_get_data(content)
         if parsed_data:
             data.update(parsed_data)
         else:
-            logging.info(f"No match found in the file: {file_path}")
+            log.info(f"No match found in the file: {file_path}")
 
         return data
 
@@ -78,7 +76,7 @@ class ParseMeminfo():
                     if singal_progress:
                         singal_progress.emit(path)
                 except Exception as e:
-                    logging.error(f"Error parsing file {path}: {e}")
+                    log.error(f"Error parsing file {path}: {e}")
 
             excel_path = ParseMeminfo.get_output_excel_path(dir)
             if data_list_all:
@@ -95,12 +93,12 @@ class ParseMeminfo():
                 if not df_all.empty:
                     df_all.to_excel(excel_path, index=False)
                 else:
-                    logging.warning("All data entries were duplicates.")
+                    log.warning("All data entries were duplicates.")
             else:
-                logging.info("Not found any valuable meminfo! Please check if meminfo logs exists or not.")
+                log.info("Not found any valuable meminfo! Please check if meminfo logs exists or not.")
                 excel_path = None
         except Exception as e:
-            logging.error(f"Error processing files in directory {dir}: {e}")
+            log.error(f"Error processing files in directory {dir}: {e}")
             excel_path = None
 
         return excel_path

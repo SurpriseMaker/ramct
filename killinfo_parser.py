@@ -3,6 +3,7 @@ import re
 import pandas as pd
 from show import Show
 import time
+from log_utils import log
 
 class KillinfoParser():
     @staticmethod
@@ -16,7 +17,7 @@ class KillinfoParser():
                 if match:
                     found = os.path.join(path, dir)
                     found_path_list.append(found)
-                    print(f"找到路径: {found}")
+                    log.info(f"找到路径: {found}")
 
         return found_path_list
     
@@ -29,7 +30,7 @@ class KillinfoParser():
             start_second = time.time()
             os.system(f"grep -ri killinfo --exclude=killinfo.txt {path}/*Stream-e*.* 1> {output_txt_path}")
             end_second = time.time()
-            print(f"grep duration seconds={end_second - start_second}")
+            log.info(f"grep duration seconds={end_second - start_second}")
             with open(output_txt_path, "r") as f:
                 content = f.readlines()
                 kill_info_dict = KillinfoParser.get_kill_info(content)
@@ -67,7 +68,7 @@ class KillinfoParser():
                     else:
                         medium_kill_count += 1
                 except (ValueError, IndexError) as e:
-                    print(f"Error processing kill info in line: {line}. Error: {e}")
+                    log.info(f"Error processing kill info in line: {line}. Error: {e}")
                     
             if psi_match:
                 try:
@@ -82,7 +83,7 @@ class KillinfoParser():
                     cpupsi = float(psi_match.group(5))
                     cpupsi_max = max(cpupsi_max, cpupsi)
                 except (ValueError, IndexError) as e:
-                    print(f"Error processing psi info in line: {line}. Error: {e}")
+                    log.info(f"Error processing psi info in line: {line}. Error: {e}")
                     
         data['heavy_kill'] = heavy_kill_count
         data['critical_kill'] = critical_kill_count
@@ -111,7 +112,7 @@ class KillinfoParser():
             df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
             df_all.to_excel(killinfo_output_excel_path, index=False)
         else:
-            print("ops, check why kill info is empty.")
+            log.info("ops, check why kill info is empty. Do you have aplog files in log path?")
             killinfo_output_excel_path = None
             
         return killinfo_output_excel_path

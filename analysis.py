@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import os
+from show import Show
+from log_utils import log
 
 class Analysis():
     @staticmethod
@@ -86,24 +88,25 @@ class Analysis():
         try:
             dataframe = dataframe.drop(columns=columns_to_del)
         except KeyError:
-            print(f"{columns_to_del} not found")
+            log(f"{columns_to_del} not found")
         return dataframe
         
     @staticmethod
     def analyze(dir, input_excel_path, ref_cov, ref_diff):
         try:
-            df = pd.read_excel(input_excel_path)
+            df_all = pd.read_excel(input_excel_path)
         except FileNotFoundError:
-            print(f"analyze error: could not found: {input_excel_path}")
+            log(f"analyze error: could not found: {input_excel_path}")
             return
 
-        abnormal_data_list = Analysis.detect_abnormal_data(df, ref_cov, ref_diff)
+        abnormal_data_list = Analysis.detect_abnormal_data(df_all, ref_cov, ref_diff)
         if abnormal_data_list:
-            df = pd.DataFrame(abnormal_data_list)
+            df_abnormal = pd.DataFrame(abnormal_data_list)
             excel_path = Analysis.get_abnormal_excel_path(dir)
-            df.to_excel(excel_path, index=False)
+            df_abnormal.to_excel(excel_path, index=False)
             json_path = Analysis.get_abnormal_json_path(dir)
-            df.to_json(json_path, orient='records')
+            df_abnormal.to_json(json_path, orient='records')
+            Show.draw_abnormal_processes(dir, df_all, df_abnormal)
             
 if __name__ == '__main__':
     dir=os.getcwd()
