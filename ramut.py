@@ -13,6 +13,21 @@ from version import __version__
 
 SPLIT_LINE = "##########################################\n##########################################"
 
+def unzip_all_gz_files(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.gz'):
+                gz_file_path = os.path.join(root, file)
+                output_file_path = os.path.join(root, file[:-3])  # Remove the '.gz' extension
+                
+                with gzip.open(gz_file_path, 'rb') as f_in:
+                    with open(output_file_path, 'wb') as f_out:
+                        f_out.write(f_in.read())
+                
+                print(f"解压完成: {gz_file_path} -> {output_file_path}")
+                # 删除原文件
+                os.remove(gz_file_path)
+                print(f"删除原文件: {gz_file_path}")
 
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)
@@ -59,6 +74,7 @@ if __name__ == '__main__':
                 log.info("Error: -d option requires an integer value")
                 sys.exit(1)
 
+    unzip_all_gz_files(dir)
     report_titile = f"RamUT Report for {dir}, version:{__version__}"
     Show.draw_initial_report(dir, report_titile)
 
