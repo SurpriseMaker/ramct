@@ -1,16 +1,17 @@
 import getopt
 import os, sys
+import traceback
 
 from mi_parser import ParseMeminfo
 from show import Show
 from analysis import Analysis
 from killinfo_parser import KillinfoParser
 from launchinfo_parser import LaunchInfoParser
+from pss_parser import PssParser
 from log_utils import log
 from version import __version__
 
 SPLIT_LINE = "##########################################\n##########################################"
-
 
 
 def analyze_data(parser, analysis_func, show_func, data_type):
@@ -25,6 +26,7 @@ def analyze_data(parser, analysis_func, show_func, data_type):
             log.warning(f"NOT FOUND ANY {data_type.upper()} INFO DATA!!!")
     except Exception as e:
         log.error(f"Error during {data_type} analysis: {e}")
+        log.error(traceback.format_exc())
     log.info(f"End of {data_type} Analysis.")
 
 if __name__ == '__main__':
@@ -69,4 +71,6 @@ if __name__ == '__main__':
     # Launch infos Analysis
     analyze_data(LaunchInfoParser.parse_launchinfo, lambda *args: None, Show.draw_launch_info, "Launch infos")
     
+    # Pss of process Analysis
+    analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
     log.info("Finished.")

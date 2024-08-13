@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from log_utils import log
 
+MAX_ITEMS_EACH_CATEGORY = 8
 class Show():
     @staticmethod 
     def get_html_path(dir):
@@ -78,7 +79,7 @@ class Show():
     
     @staticmethod 
     def draw_ram_trend(dir, excel_path):
-        MAX_ITEMS_EACH_CATEGORY = 10
+        
         markers = 'o'
         
         try:
@@ -261,3 +262,51 @@ class Show():
         html_path = Show.get_html_path(dir)
         with open(html_path, 'w') as file:
             file.write(html_title)
+            
+    @staticmethod
+    def draw_pss_report(dir, excel_path):
+        MIN_PSS_TO_DRAW = 40000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
+        df = pd.read_excel(excel_path)
+        
+        # 获取DataFrame的索引
+        df_index = df.index
+        
+        # 去掉列元素最大值小于MIN_PSS_TO_DRAW的列
+        df = df.loc[:, df.max() >= MIN_PSS_TO_DRAW]
+
+        # 按列中元素的最大值排序
+        sorted_columns = df.max().sort_values(ascending=False).index
+        df = df[sorted_columns]
+
+        df_column_list = df.columns.to_list()
+
+        # 计算子图的行数和列数
+        num_plots = len(df_column_list)
+        cols = 2
+        rows = num_plots// MAX_ITEMS_EACH_CATEGORY // cols + 1 if num_plots % MAX_ITEMS_EACH_CATEGORY != 0 else num_plots// MAX_ITEMS_EACH_CATEGORY // cols
+
+        log.info(f"draw_pss_report, num_plots={num_plots}, rows={rows}, cols={cols}")
+        
+        # 创建子图
+        fig, axs = plt.subplots(rows, cols, figsize=(12, 6 * rows))
+        
+        # 遍历每一列并绘图
+        for index, column in enumerate(df_column_list):
+            ax_row = int(index/MAX_ITEMS_EACH_CATEGORY /2)
+            ax_coloum = int(index/MAX_ITEMS_EACH_CATEGORY) %2
+            if rows > 1:
+                ax = axs[ax_row][ax_coloum]
+            else:
+                ax = axs[ax_coloum]
+            ax.set_title("PSS by Process in KBs")
+            ax.plot(df_index, df[column], label=column, marker='o', color=Show.get_color(index))
+            ax.legend()
+        ax.tick_params(axis='x', labelrotation=30)
+        plt.tight_layout()
+        
+        h1 = f"PSS by Process, peak {MIN_PSS_TO_DRAW} KBs or above "
+        html_content = Show.gen_html_content(h1)
+        html_path = Show.get_html_path(dir)
+        with open(html_path, 'a') as file:
+            file.write(html_content)
+            mpld3.save_html(fig, file)
