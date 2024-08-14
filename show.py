@@ -152,13 +152,25 @@ class Show():
 
         df = pd.read_excel(excel_path)
         df_column_list = df.columns.to_list()
-        fig, axs = plt.subplots(int(len(df_column_list)/3), 3, figsize=(12, 4 * int(len(df_column_list)/3)))
         
+        # 将日期字符串转换为日期类型
+        df[df_column_list[0]] = pd.to_datetime(df[df_column_list[0]], format='%m-%d')
+        
+        # 计算子图的行数和列数, df的第一列是时间戳
+        num_plots = len(df_column_list) - 1
+        cols = 3
+        rows = num_plots // cols + 1 if num_plots % cols != 0 else num_plots // cols
+
+        fig, axs = plt.subplots(rows, cols, figsize=(12, 4 * rows))
+
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(df_column_list[1:]):
-            row = int(index /3)
-            coloum = (index) %3
-            ax = axs[row][coloum]
+            row = index // 3
+            coloum = index % 3
+            if rows > 1:
+                ax = axs[row][coloum]
+            else:
+                ax = axs[coloum]
             ax.set_title(y_labels)
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
             
@@ -182,9 +194,9 @@ class Show():
         df_column_list = df.columns.to_list()
         
         # 计算子图的行数和列数, df的第一列是时间戳
-        num_plots = len(df_column_list) -1
-        rows = (num_plots + 3) // 3
+        num_plots = len(df_column_list) - 1
         cols = 3
+        rows = num_plots // cols + 1 if num_plots % cols != 0 else num_plots // cols
 
         fig, axs = plt.subplots(rows, cols, figsize=(12, 4 * rows))
         
@@ -265,7 +277,7 @@ class Show():
             
     @staticmethod
     def draw_pss_report(dir, excel_path):
-        MIN_PSS_TO_DRAW = 40000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
+        MIN_PSS_TO_DRAW = 80000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
         df = pd.read_excel(excel_path)
         
         # 获取DataFrame的索引

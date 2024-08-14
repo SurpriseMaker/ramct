@@ -18,18 +18,19 @@ class PssParser():
 
             for root, dirs, files in os.walk(dir):
                 for file in files:
-                    file_path = os.path.join(root, file)
-                    log.info(f"Parsing {file_path}")
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        matches = re.findall(pattern, content)
-                        for match in matches:
-                            data.append({
-                                'pid': int(match[0]),
-                                'uid': int(match[1]),
-                                'package': match[2],
-                                'pss': int(int(match[3])/1024)
-                            })
+                    if 'Stream-e' in file:
+                        file_path = os.path.join(root, file)
+                        log.info(f"Parsing {file_path}")
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read()
+                            matches = re.findall(pattern, content)
+                            for match in matches:
+                                data.append({
+                                    'pid': int(match[0]),
+                                    'uid': int(match[1]),
+                                    'package': match[2],
+                                    'pss': int(int(match[3])/1024)
+                                })
 
             df = pd.DataFrame(data)
             log.info(f"df = {df}")
@@ -56,5 +57,6 @@ if __name__ == "__main__":
     folder_path = "D:/github/ramct/downloads/NZ4C240007"
     PssParser.parse_pss_data(folder_path)
     excel_path = PssParser.get_output_excel_path(folder_path)
-    Show.draw_initial_report(folder_path, 'Test')
-    Show.draw_pss_report(folder_path, excel_path)
+    if excel_path:
+        Show.draw_initial_report(folder_path, 'Test')
+        Show.draw_pss_report(folder_path, excel_path)

@@ -1,6 +1,7 @@
 import getopt
 import os, sys
 import traceback
+import gzip
 
 from mi_parser import ParseMeminfo
 from show import Show
@@ -27,7 +28,6 @@ def unzip_all_gz_files(directory):
                 print(f"解压完成: {gz_file_path} -> {output_file_path}")
                 # 删除原文件
                 os.remove(gz_file_path)
-                print(f"删除原文件: {gz_file_path}")
 
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)

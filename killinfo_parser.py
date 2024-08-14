@@ -102,23 +102,83 @@ class KillinfoParser():
         file_path = os.path.join(dir, f"{keyword}_killinfo.xlsx")
         return file_path
 
-    @staticmethod
-    def parse_killinfo(log_path):
-        pattern = r'\d{4}-\d{2}-\d{2}'
-        path_list=KillinfoParser.get_all_log_paths(log_path, pattern)
-        killinfo_output_excel_path = KillinfoParser.get_killinfo_output_excel_path(log_path)
-        data_list_all = KillinfoParser.grep_info(path_list)
-        if data_list_all:
-            df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
-            df_all.to_excel(killinfo_output_excel_path, index=False)
-        else:
-            log.info("ops, check why kill info is empty. Do you have aplog files in log path?")
-            killinfo_output_excel_path = None
+    # @staticmethod
+    # def parse_killinfo(log_path):
+    #     pattern = r'\d{4}-\d{2}-\d{2}'
+    #     path_list=KillinfoParser.get_all_log_paths(log_path, pattern)
+    #     killinfo_output_excel_path = KillinfoParser.get_killinfo_output_excel_path(log_path)
+    #     data_list_all = KillinfoParser.grep_info(path_list)
+    #     if data_list_all:
+    #         df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
+    #         df_all.to_excel(killinfo_output_excel_path, index=False)
+    #     else:
+    #         log.info("ops, check why kill info is empty. Do you have aplog files in log path?")
+    #         killinfo_output_excel_path = None
             
+    #     return killinfo_output_excel_path
+
+    @staticmethod
+    def parse_killinfo(dir):
+        killinfo_output_excel_path = None
+        data_list = []
+        #01-18 17:13:33.654   723   723 I killinfo: [23908,10448,915,201,173576,14,93812,638636,34000,1436,53000,4288,2664712,478784,584484,540460,211764,374244,84116,332916,88448,119632,0,0,840,1016,104,11,0,29268,254540,5,10,2.730000,1.010000,3.010000,0.650000,11.110000]
+
+        #pattern = r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\]"
+        pattern = r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,.*"
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                if 'Stream-e' in file:
+                    file_path = os.path.join(root, file)
+                    log.info(f"Parsing {file_path}")
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        matches = re.findall(pattern, content)
+                        for match in matches:
+                            data_list.append({
+                                'date': match[0],
+                                'killed_adj': int(match[1]),
+                            })
+        
+        df = pd.DataFrame(data_list)
+        
+        if df.empty:
+            log.warning("Not found any killing data.")
+            return None
+        
+        # 将datetime列转换为datetime类型
+        log.info(f"df = {df}")
+
+        # 使用pd.cut将killed_adj列分箱
+        bins = [0, 201, 921, float('inf')]
+        labels = ['heavy_kill', 'critical_kill', 'medium_kill']
+        df['killed_adj_bin'] = pd.cut(df['killed_adj'], bins=bins, labels=labels, right=False)
+        
+        # 按日期和分箱结果分组并统计个数
+        grouped = df.groupby(['date', 'killed_adj_bin']).size().unstack(fill_value=0)
+        
+        # 重命名列
+        grouped.columns = ['heavy_kill', 'critical_kill', 'medium_kill']
+        
+        # 将索引转换为列
+        grouped.reset_index(inplace=True)
+        # 打印每个日期的统计结果
+        for _, row in grouped.iterrows():
+            log.info(f"Date: {row['date']}")
+            log.info(f"Counts: {row[['heavy_kill', 'critical_kill', 'medium_kill']].to_dict()}")
+            
+        if not grouped.empty:
+            # 保存结果到excel文件
+            killinfo_output_excel_path = KillinfoParser.get_killinfo_output_excel_path(dir)
+            grouped.to_excel(killinfo_output_excel_path, index=False)
+        else:
+            log.warning("Not found any killing data.")
+
         return killinfo_output_excel_path
 
 if __name__ == '__main__':
-    log_path = "D:/下载/NFNAX10115Logger.tar/NFNAX10115Logger"
+    log_path = "D:/github/ramct/downloads/NZ4C240007"
     killinfo_output_excel_path = KillinfoParser.parse_killinfo(log_path)
     
-    Show.draw_killing(log_path, killinfo_output_excel_path)
+    if killinfo_output_excel_path:
+        Show.draw_initial_report(log_path, 'test')
+        Show.draw_killing(log_path, killinfo_output_excel_path)
