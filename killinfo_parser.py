@@ -129,7 +129,7 @@ class KillinfoParser():
             for file in files:
                 if 'Stream-e' in file:
                     file_path = os.path.join(root, file)
-                    log.info(f"Parsing {file_path}")
+                    #log.info(f"Parsing {file_path}")
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                         content = f.read()
                         matches = re.findall(pattern, content)
@@ -145,7 +145,6 @@ class KillinfoParser():
             log.warning("Not found any killing data.")
             return None
         
-        # 将datetime列转换为datetime类型
         log.info(f"df = {df}")
 
         # 使用pd.cut将killed_adj列分箱

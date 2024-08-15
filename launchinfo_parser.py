@@ -98,38 +98,92 @@ class LaunchInfoParser():
         file_path = os.path.join(dir, f"{keyword}_launch_info.xlsx")
         return file_path
     
-    @staticmethod
-    def parse_launchinfo(log_path):
-        try:
-            pattern = r'\d{4}-\d{2}-\d{2}'
-            path_list=LaunchInfoParser.get_all_log_paths(log_path, pattern)
-            if not path_list:
-                    log.warning("No log paths found.")
-                    return None
-            output_excel_path = LaunchInfoParser.get_launch_info_excel_path(log_path)
-            data_list_all = LaunchInfoParser.grep_info(path_list)
-            if not data_list_all:
-                    log.warning("Ops, check why launch info is empty.")
-                    return None
+    # @staticmethod
+    # def parse_launchinfo(log_path):
+    #     try:
+    #         pattern = r'\d{4}-\d{2}-\d{2}'
+    #         path_list=LaunchInfoParser.get_all_log_paths(log_path, pattern)
+    #         if not path_list:
+    #                 log.warning("No log paths found.")
+    #                 return None
+    #         output_excel_path = LaunchInfoParser.get_launch_info_excel_path(log_path)
+    #         data_list_all = LaunchInfoParser.grep_info(path_list)
+    #         if not data_list_all:
+    #                 log.warning("Ops, check why launch info is empty.")
+    #                 return None
 
-            df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
-            if df_all.empty:
-                    log.warning("All data are duplicates.")
-                    return None
+    #         df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
+    #         if df_all.empty:
+    #                 log.warning("All data are duplicates.")
+    #                 return None
 
-            try:
-                df_all.to_excel(output_excel_path, index=False)
-            except Exception as e:
-                log.error(f"Failed to write Excel file: {e}")
-                return None
+    #         try:
+    #             df_all.to_excel(output_excel_path, index=False)
+    #         except Exception as e:
+    #             log.error(f"Failed to write Excel file: {e}")
+    #             return None
 
 
-            return output_excel_path
+    #         return output_excel_path
         
-        except Exception as e:
-            log.error(f"An error occurred: {e}")
+    #     except Exception as e:
+    #         log.error(f"An error occurred: {e}")
+    #         return None
+        
+    @staticmethod
+    def parse_launchinfo(dir):
+        output_excel_path = None
+        data_list = []
+        
+        #08-03 11:53:46.077  1784  2473 I LaunchCheckinHandler: MotoDisplayed com.google.android.dialer/com.android.dialer.incall.activity.ui.InCallActivity,wp,ca,261
+        pattern = r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+LaunchCheckinHandler: MotoDisplayed [^,]+\,(\w+)\,(\w+)\,(\d+)"
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                if 'Stream-s' in file:
+                    file_path = os.path.join(root, file)
+                    #log.info(f"Parsing {file_path}")
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        matches = re.findall(pattern, content)
+                        for match in matches:
+                            data_list.append({
+                                'date': match[0],
+                                'process_launch_type': match[1],
+                                'activity_launch_type': match[2],
+                                'duration': match[3]
+                            })
+        
+        df = pd.DataFrame(data_list)
+        
+        if df.empty:
+            log.warning("Not found any killing data.")
             return None
-    
+        
+        log.info(f"df = {df}")
+
+        # 按日期统计总行数
+        total_counts = df.groupby('date').size().reset_index(name='total_count')
+        
+        # 按日期统计process_launch_type列中值为wp的个数
+        wp_counts = df[df['process_launch_type'] == 'wp'].groupby('date').size().reset_index(name='wp_count')
+        
+        # 合并总行数和wp的个数
+        result = pd.merge(total_counts, wp_counts, on='date', how='left').fillna(0)
+        # 计算wp的比例
+        result['wp_ratio'] = result['wp_count'] / result['total_count']
+        
+        # 确保列顺序为 date, wp_ratio, wp_count, total_count
+        result = result[['date', 'wp_ratio', 'wp_count', 'total_count']]
+        
+        if not result.empty:
+            # 保存结果到excel文件
+            output_excel_path = LaunchInfoParser.get_launch_info_excel_path(dir)
+            result.to_excel(output_excel_path, index=False)
+        else:
+            log.warning("Not found any launch info data.")
+            
+        return output_excel_path
+
 if __name__ == '__main__':
     log_path = "D:/glory/rack/NZ4C240007"
     excel_path = LaunchInfoParser.parse_launchinfo(log_path)

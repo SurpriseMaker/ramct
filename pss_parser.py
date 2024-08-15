@@ -20,7 +20,7 @@ class PssParser():
                 for file in files:
                     if 'Stream-e' in file:
                         file_path = os.path.join(root, file)
-                        log.info(f"Parsing {file_path}")
+                        #log.info(f"Parsing {file_path}")
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                             content = f.read()
                             matches = re.findall(pattern, content)

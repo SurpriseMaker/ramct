@@ -2,6 +2,7 @@ import getopt
 import os, sys
 import traceback
 import gzip
+import time
 
 from mi_parser import ParseMeminfo
 from show import Show
@@ -32,6 +33,7 @@ def unzip_all_gz_files(directory):
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)
     log.info(f"Beginning of {data_type} Analysis....")
+    start_second = time.time()
     try:
         excel_path = parser(dir)
         if excel_path:
@@ -42,7 +44,9 @@ def analyze_data(parser, analysis_func, show_func, data_type):
     except Exception as e:
         log.error(f"Error during {data_type} analysis: {e}")
         log.error(traceback.format_exc())
-    log.info(f"End of {data_type} Analysis.")
+    
+    end_second = time.time()
+    log.info(f"End of {data_type} Analysis. duration: {end_second - start_second} seconds.")
 
 if __name__ == '__main__':
     argv = sys.argv[1:]

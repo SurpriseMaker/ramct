@@ -37,7 +37,7 @@ class ParseMeminfo():
             for file in fnmatch.filter(file_lst, f'*{key}*'):
                 found = os.path.join(path, file)
                 found_file_path_list.append(found)
-                log.info(f"找到路径: {found}")
+                #log.info(f"找到路径: {found}")
 
         return found_file_path_list
 

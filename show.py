@@ -143,8 +143,10 @@ class Show():
             with open(html_path, 'a') as file:
                 file.write(html_content)
                 mpld3.save_html(fig, file)
+                log.info(f"draw_ram_trend, saved to {html_path}")
         except Exception as e:
             log.error(f"Error writing to file: {e}")
+            
 
     @staticmethod 
     def draw_killing(dir, excel_path):
@@ -202,9 +204,12 @@ class Show():
         
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(df_column_list[1:]):
-            row = int(index /3)
+            row = index // 3
             coloum = (index) %3
-            ax = axs[row][coloum]
+            if rows > 1:
+                ax = axs[row][coloum]
+            else:
+                ax = axs[coloum]
             ax.set_title(y_labels)
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
             
@@ -277,7 +282,7 @@ class Show():
             
     @staticmethod
     def draw_pss_report(dir, excel_path):
-        MIN_PSS_TO_DRAW = 80000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
+        MIN_PSS_TO_DRAW = 100000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
         df = pd.read_excel(excel_path)
         
         # 获取DataFrame的索引
@@ -304,7 +309,7 @@ class Show():
         
         # 遍历每一列并绘图
         for index, column in enumerate(df_column_list):
-            ax_row = int(index/MAX_ITEMS_EACH_CATEGORY /2)
+            ax_row = index/MAX_ITEMS_EACH_CATEGORY // 2
             ax_coloum = int(index/MAX_ITEMS_EACH_CATEGORY) %2
             if rows > 1:
                 ax = axs[ax_row][ax_coloum]
@@ -313,7 +318,10 @@ class Show():
             ax.set_title("PSS by Process in KBs")
             ax.plot(df_index, df[column], label=column, marker='o', color=Show.get_color(index))
             ax.legend()
-        ax.tick_params(axis='x', labelrotation=30)
+        
+        for ax in axs.flatten():
+            ax.tick_params(axis='x', labelrotation=30)
+
         plt.tight_layout()
         
         h1 = f"PSS by Process, peak {MIN_PSS_TO_DRAW} KBs or above "
