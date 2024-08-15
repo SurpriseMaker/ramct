@@ -250,7 +250,7 @@ class Show():
         for index, name in enumerate(abnormal_name_list):
             if name not in df.columns:
                 continue
-            row = int(index /2)
+            row = index // 2
             coloum = (index) %2
             if rows > 1:
                 ax = axs[row][coloum]
@@ -309,7 +309,7 @@ class Show():
         
         # 遍历每一列并绘图
         for index, column in enumerate(df_column_list):
-            ax_row = index/MAX_ITEMS_EACH_CATEGORY // 2
+            ax_row = index// MAX_ITEMS_EACH_CATEGORY // 2
             ax_coloum = int(index/MAX_ITEMS_EACH_CATEGORY) %2
             if rows > 1:
                 ax = axs[ax_row][ax_coloum]

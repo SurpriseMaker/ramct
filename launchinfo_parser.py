@@ -175,6 +175,8 @@ class LaunchInfoParser():
         # 确保列顺序为 date, wp_ratio, wp_count, total_count
         result = result[['date', 'wp_ratio', 'wp_count', 'total_count']]
         
+        # 将日期字符串转换为日期类型
+        result['date'] = pd.to_datetime(df['date'], format='%m-%d')
         if not result.empty:
             # 保存结果到excel文件
             output_excel_path = LaunchInfoParser.get_launch_info_excel_path(dir)
