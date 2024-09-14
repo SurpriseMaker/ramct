@@ -5,117 +5,39 @@ from show import Show
 import time
 from log_utils import log
 
+# 定义PROCESS_STATE的映射字典
+PROCESS_STATE_MAP = {
+    -1: "PROCESS_STATE_UNKNOWN",
+    0: "PROCESS_STATE_PERSISTENT",
+    1: "PROCESS_STATE_PERSISTENT_UI",
+    2: "PROCESS_STATE_TOP",
+    3: "PROCESS_STATE_BOUND_TOP",
+    4: "PROCESS_STATE_FOREGROUND_SERVICE",
+    5: "PROCESS_STATE_BOUND_FOREGROUND_SERVICE",
+    6: "PROCESS_STATE_IMPORTANT_FOREGROUND",
+    7: "PROCESS_STATE_IMPORTANT_BACKGROUND",
+    8: "PROCESS_STATE_TRANSIENT_BACKGROUND",
+    9: "PROCESS_STATE_BACKUP",
+    10: "PROCESS_STATE_SERVICE",
+    11: "PROCESS_STATE_RECEIVER",
+    12: "PROCESS_STATE_TOP_SLEEPING",
+    13: "PROCESS_STATE_HEAVY_WEIGHT",
+    14: "PROCESS_STATE_HOME",
+    15: "PROCESS_STATE_LAST_ACTIVITY",
+    16: "PROCESS_STATE_CACHED_ACTIVITY",
+    17: "PROCESS_STATE_CACHED_ACTIVITY_CLIENT",
+    18: "PROCESS_STATE_CACHED_RECENT",
+    19: "PROCESS_STATE_CACHED_EMPTY"
+}
+
 class KillinfoParser():
     @staticmethod
-    def get_all_log_paths(file_path: str, pattern):
-        paths = os.walk(file_path)
-        found_path_list = []
-
-        for path, dir_lst, file_lst in paths:
-            for dir in dir_lst:
-                match = re.search(pattern, dir)
-                if match:
-                    found = os.path.join(path, dir)
-                    found_path_list.append(found)
-                    log.info(f"找到路径: {found}")
-
-        return found_path_list
-    
-    @staticmethod
-    def grep_info(path_list):
-        data_list_all = []
-        for path in path_list:
-            data = {'dir_name':os.path.basename(path)}
-            output_txt_path = os.path.join(path, "killinfo.txt")
-            start_second = time.time()
-            os.system(f"grep -ri killinfo --exclude=killinfo.txt {path}/*Stream-e*.* 1> {output_txt_path}")
-            end_second = time.time()
-            log.info(f"grep duration seconds={end_second - start_second}")
-            with open(output_txt_path, "r") as f:
-                content = f.readlines()
-                kill_info_dict = KillinfoParser.get_kill_info(content)
-                data.update(kill_info_dict)
-                data_list_all.append(data)
-        
-        return data_list_all
-    
-    @staticmethod
-    def get_kill_info(content):
-        heavy_kill_count = 0
-        critical_kill_count = 0
-        medium_kill_count = 0
-        kill_depth = int(1000)
-        mempsi_some_max = 0
-        mempsi_full_max = 0
-        iopsi_some_max = 0
-        iopsi_full_max = 0
-        cpupsi_max = 0
-        data = {}
-        kill_pattern = re.compile(r"killinfo: \[(\d+)\,(\d+)\,(\d+)\,")
-        psi_pattern  = re.compile(r"(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\]")
-        for line in content:
-            kill_match = kill_pattern.search(line)
-            psi_match = psi_pattern.search(line)
-
-            if kill_match:
-                try:
-                    killed_adj = int(kill_match.group(3))
-                    kill_depth = min(kill_depth, killed_adj)
-                    if killed_adj < 201:
-                        heavy_kill_count += 1
-                    elif killed_adj < 920:
-                        critical_kill_count += 1
-                    else:
-                        medium_kill_count += 1
-                except (ValueError, IndexError) as e:
-                    log.info(f"Error processing kill info in line: {line}. Error: {e}")
-                    
-            if psi_match:
-                try:
-                    mempsi_some = float(psi_match.group(1))
-                    mempsi_some_max = max(mempsi_some_max, mempsi_some)
-                    mempsi_full = float(psi_match.group(2))
-                    mempsi_full_max = max(mempsi_full_max, mempsi_full)
-                    iopsi_some = float(psi_match.group(3))
-                    iopsi_some_max = max(iopsi_some_max, iopsi_some)
-                    iopsi_full = float(psi_match.group(4))
-                    iopsi_full_max = max(iopsi_full_max, iopsi_full)
-                    cpupsi = float(psi_match.group(5))
-                    cpupsi_max = max(cpupsi_max, cpupsi)
-                except (ValueError, IndexError) as e:
-                    log.info(f"Error processing psi info in line: {line}. Error: {e}")
-                    
-        data['heavy_kill'] = heavy_kill_count
-        data['critical_kill'] = critical_kill_count
-        data['medium_kill'] = medium_kill_count
-        data['kill_depth'] = kill_depth
-        data['mempsi_some_max'] = mempsi_some_max
-        data['mempsi_full_max'] = mempsi_full_max
-        data['iopsi_some_max'] = iopsi_some_max
-        data['iopsi_full_max'] = iopsi_full_max
-        data['cpupsi_max'] = cpupsi_max
-        return data
+    def int_to_process_state(value):
+        return PROCESS_STATE_MAP.get(value, "UNKNOWN_STATE")
 
     @staticmethod
     def get_killinfo_output_excel_path(dir):
-        keyword = os.path.basename(dir)
-        file_path = os.path.join(dir, f"{keyword}_killinfo.xlsx")
-        return file_path
-
-    # @staticmethod
-    # def parse_killinfo(log_path):
-    #     pattern = r'\d{4}-\d{2}-\d{2}'
-    #     path_list=KillinfoParser.get_all_log_paths(log_path, pattern)
-    #     killinfo_output_excel_path = KillinfoParser.get_killinfo_output_excel_path(log_path)
-    #     data_list_all = KillinfoParser.grep_info(path_list)
-    #     if data_list_all:
-    #         df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
-    #         df_all.to_excel(killinfo_output_excel_path, index=False)
-    #     else:
-    #         log.info("ops, check why kill info is empty. Do you have aplog files in log path?")
-    #         killinfo_output_excel_path = None
-            
-    #     return killinfo_output_excel_path
+        return os.path.join(dir, 'killinfo.xlsx')
 
     @staticmethod
     def parse_killinfo(dir):
@@ -160,6 +82,12 @@ class KillinfoParser():
         
         # 将索引转换为列
         grouped.reset_index(inplace=True)
+        
+        # 将日期字符串转换为日期类型
+        df['date'] = pd.to_datetime(df['date'], format='%m-%d')
+        
+        # 增加一列 heavy_kill_per_hour
+        grouped['heavy_kill_per_hour'] = grouped['heavy_kill'] / 24
         # 打印每个日期的统计结果
         for _, row in grouped.iterrows():
             log.info(f"Date: {row['date']}")
@@ -174,6 +102,65 @@ class KillinfoParser():
 
         return killinfo_output_excel_path
 
+    @staticmethod
+    def parse_process_die_info(dir):
+        process_die_info_output_excel_path = None
+        data_list = []
+        #08-20 05:02:45.216  1759  8211 I am_proc_died: [0,3968,com.motorola.coresettingsext,920,19]
+        pattern = r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+am_proc_died:\s+\[\d+\,(\d+)\,([^,]+)\,(\d+)\,(\d+)\]"
+        for root, dirs, files in os.walk(dir):
+            for file in files:
+                if 'Stream-e' in file or 'logcat' in file:
+                    file_path = os.path.join(root, file)
+                    log.info(f"Parsing {file_path}")
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                        matches = re.findall(pattern, content)
+                        for match in matches:
+                            data_list.append({
+                                'datetime': match[0],
+                                'pid': int(match[1]),
+                                'pname': match[2],
+                                'adj': int(match[3]),
+                                'process_state_value': int(match[4]),
+                                'process_state_str': KillinfoParser.int_to_process_state(int(match[4])),
+                            })
+                        
+        df = pd.DataFrame(data_list)
+        
+        if df.empty:
+            log.warning("Not found any process die data.")
+            return None
+        
+        log.info(f"df = {df}")
+        
+        # 确保 datetime 列是日期类型
+        df['datetime'] = pd.to_datetime(df['datetime'], format='%m-%d %H:%M:%S')
+
+        # 计算每个 pname 组内的时间差
+        df['kill_interval'] = df.groupby('pname')['datetime'].transform(lambda x: x.diff().dt.total_seconds())  # 时间差以秒为单位
+        df.to_excel(os.path.join(dir, 'process_die_info_org.xlsx'), index=False)
+        
+        # 按pname分组并统计个数
+        grouped = df.groupby(['pname']).size().reset_index(name='count')
+
+        # 按count大小排序
+        grouped = grouped.sort_values(by='count', ascending=False)
+
+        # 打印每个进程的统计结果
+        for _, row in grouped.iterrows():
+            log.info(f"Process: {row['pname']}")
+            log.info(f"Count: {row['count']}")
+            
+        if not grouped.empty:
+            # 保存结果到excel文件
+            process_die_info_output_excel_path = os.path.join(dir, 'process_die_info.xlsx')
+            grouped.to_excel(process_die_info_output_excel_path, index=False)
+        else:
+            log.warning("Not found any process die data.")
+
+        return process_die_info_output_excel_path
+
 if __name__ == '__main__':
     log_path = "D:/github/ramct/downloads/NZ4C240007"
     killinfo_output_excel_path = KillinfoParser.parse_killinfo(log_path)
@@ -181,3 +168,6 @@ if __name__ == '__main__':
     if killinfo_output_excel_path:
         Show.draw_initial_report(log_path, 'test')
         Show.draw_killing(log_path, killinfo_output_excel_path)
+        
+        
+        

@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from log_utils import log
 
+
 MAX_ITEMS_EACH_CATEGORY = 8
 class Show():
     @staticmethod 
@@ -155,9 +156,6 @@ class Show():
         df = pd.read_excel(excel_path)
         df_column_list = df.columns.to_list()
         
-        # 将日期字符串转换为日期类型
-        df[df_column_list[0]] = pd.to_datetime(df[df_column_list[0]], format='%m-%d')
-        
         # 计算子图的行数和列数, df的第一列是时间戳
         num_plots = len(df_column_list) - 1
         cols = 3
@@ -282,7 +280,7 @@ class Show():
             
     @staticmethod
     def draw_pss_report(dir, excel_path):
-        MIN_PSS_TO_DRAW = 100000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
+        MIN_PSS_TO_DRAW = 200000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
         df = pd.read_excel(excel_path)
         
         # 获取DataFrame的索引
@@ -299,28 +297,35 @@ class Show():
 
         # 计算子图的行数和列数
         num_plots = len(df_column_list)
-        cols = 2
-        rows = num_plots// MAX_ITEMS_EACH_CATEGORY // cols + 1 if num_plots % MAX_ITEMS_EACH_CATEGORY != 0 else num_plots// MAX_ITEMS_EACH_CATEGORY // cols
+        cols = 1
+        rows = num_plots// MAX_ITEMS_EACH_CATEGORY // cols + 1 if num_plots % MAX_ITEMS_EACH_CATEGORY != 0 or MAX_ITEMS_EACH_CATEGORY==1 else num_plots// MAX_ITEMS_EACH_CATEGORY // cols
 
         log.info(f"draw_pss_report, num_plots={num_plots}, rows={rows}, cols={cols}")
         
         # 创建子图
-        fig, axs = plt.subplots(rows, cols, figsize=(12, 6 * rows))
+        fig, axs = plt.subplots(rows, cols, figsize=(12, 12 * rows))
         
         # 遍历每一列并绘图
         for index, column in enumerate(df_column_list):
-            ax_row = index// MAX_ITEMS_EACH_CATEGORY // 2
-            ax_coloum = int(index/MAX_ITEMS_EACH_CATEGORY) %2
-            if rows > 1:
+            ax_row = index// MAX_ITEMS_EACH_CATEGORY // cols
+            ax_coloum = index // MAX_ITEMS_EACH_CATEGORY % cols
+            if rows > 1 and cols > 1:
                 ax = axs[ax_row][ax_coloum]
-            else:
+            elif rows == 1 and cols > 1:
                 ax = axs[ax_coloum]
+            elif cols == 1 and rows > 1:
+                ax = axs[ax_row]
+            else:
+                ax = axs
             ax.set_title("PSS by Process in KBs")
             ax.plot(df_index, df[column], label=column, marker='o', color=Show.get_color(index))
             ax.legend()
         
-        for ax in axs.flatten():
+        if cols == 1 and rows == 1:
             ax.tick_params(axis='x', labelrotation=30)
+        else:
+            for ax in axs.flatten():
+                ax.tick_params(axis='x', labelrotation=30)
 
         plt.tight_layout()
         

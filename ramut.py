@@ -87,6 +87,7 @@ if __name__ == '__main__':
     
     # Kill infos Analysis
     analyze_data(KillinfoParser.parse_killinfo, lambda *args: None, Show.draw_killing, "Kill infos")
+    #analyze_data(KillinfoParser.parse_process_die_info, lambda *args: None, Show.draw_killing, "Die infos")
     
     # Launch infos Analysis
     analyze_data(LaunchInfoParser.parse_launchinfo, lambda *args: None, Show.draw_launch_info, "Launch infos")

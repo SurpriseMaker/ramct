@@ -3,13 +3,13 @@ import time
 import matplotlib.pyplot as plt
 from datetime import datetime
 
-class PssMonitor:
+class CpuMonitor:
     def __init__(self, process_name, device_id=None):
         super().__init__()
         self.process_name = process_name
         self.device_id = device_id
         self.pid = self.get_pid_from_name(process_name)
-        self.total_pss_values = []
+        self.total_cpu_values = []
         
     def get_pid_from_name(self, process_name):
         if self.device_id:
@@ -41,16 +41,16 @@ class PssMonitor:
         pid = parts[1]
         print(f"Process ID={pid}")
         return pid
-
-    def get_total_pss(self):
+    
+    def get_cpu(self):
         if not self.pid:
             print("PID is not available")
             return None
         
         if self.device_id:
-            cmd = f"adb -s {self.device_id} shell dumpsys meminfo {self.pid}"
+            cmd = f"adb -s {self.device_id} shell top -n1 -p {self.pid}"
         else:
-            cmd = f"adb shell dumpsys meminfo {self.pid}"
+            cmd = f"adb shell top -n1 -p {self.pid}"
         
         # 使用 subprocess 模块执行命令
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -64,32 +64,36 @@ class PssMonitor:
         lines = result.stdout.strip().split('\n')
         
         for line in lines:
-            if "TOTAL PSS:" in line:
+            if self.process_name in line:
                 parts = line.split()
-                if len(parts) > 1:
-                    total_pss = int(parts[2])
-                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"Total PSS={total_pss} at {current_time}")
-                    self.total_pss_values.append((current_time, total_pss))
-                    return total_pss
+                if len(parts) > 8:
+                    try:
+                        cpu_usage = float(parts[8])
+                        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        print(f"cpu usage={cpu_usage} at {current_time}")
+                        self.total_cpu_values.append((current_time, cpu_usage))
+                        return cpu_usage
+                    except ValueError:
+                        print(f"Error: parts[8] ('{parts[8]}') cannot be converted to float")
+                        return None
         
-        print("TOTAL PSS not found in the output")
+        print("CPU value not found in the output")
         return None
-
+    
     def monitor_and_plot(self):
         try:
             while True:
-                self.get_total_pss()
-                time.sleep(3)
+                self.get_cpu()
+                time.sleep(1)
         except KeyboardInterrupt:
             print("Monitoring stopped by user")
         
-        if self.total_pss_values:
-            times, values = zip(*self.total_pss_values)
+        if self.total_cpu_values:
+            times, values = zip(*self.total_cpu_values)
             plt.plot(times, values, label=self.process_name)
             plt.xlabel('Time')
-            plt.ylabel('Total PSS')
-            plt.title('Total PSS over time')
+            plt.ylabel('CPU usage (%)')
+            plt.title('CPU usage over time')
             # 选择性地显示 x 轴标签
             num_labels = 10  # 显示的标签数量
             if len(times) > num_labels:
@@ -102,7 +106,7 @@ class PssMonitor:
             plt.show()
         else:
             print("No data to plot")
-
+            
 if __name__ == "__main__":
-    monitor = PssMonitor("logd")
+    monitor = CpuMonitor("lmkd")
     monitor.monitor_and_plot()

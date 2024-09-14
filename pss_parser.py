@@ -18,7 +18,7 @@ class PssParser():
 
             for root, dirs, files in os.walk(dir):
                 for file in files:
-                    if 'Stream-e' in file:
+                    if 'Stream-e' in file or "aplogcat-events" in file:
                         file_path = os.path.join(root, file)
                         #log.info(f"Parsing {file_path}")
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:

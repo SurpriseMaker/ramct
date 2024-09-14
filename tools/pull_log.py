@@ -66,7 +66,16 @@ if __name__ == '__main__':
         os.makedirs(DOWNLOAD_FOLDER)
         
     url_list = [
-        "http://logger.stability.mot.com/dumpsys_meminfo/NFNA2N0280/2024-07-22/",
+        # Glory
+        "http://stability-logger2.lenovo.com/dumpsys_meminfo/NZ4C240007/2024-09-02/",
+         
+        "http://stability-logger2.lenovo.com/dumpsys_meminfo/NZ4C240007/2024-09-03/",
+        "http://stability-logger2.lenovo.com/dumpsys_meminfo/NZ4C240007/2024-09-04/",
+        "http://stability-logger2.lenovo.com/dumpsys_meminfo/NZ4C240007/2024-09-05/",
+        "http://stability-logger2.lenovo.com/APlogs/NZ4C240007/2024-09-02/",
+        "http://stability-logger2.lenovo.com/APlogs/NZ4C240007/2024-09-03/",
+        "http://stability-logger2.lenovo.com/APlogs/NZ4C240007/2024-09-04/",
+        "http://stability-logger2.lenovo.com/APlogs/NZ4C240007/2024-09-05/",
 
     ]
     for base_url in url_list:
@@ -78,4 +87,4 @@ if __name__ == '__main__':
         # 下载所有文件
         download_all_files(base_url, destination_folder)
 
-        unzip_all_gz_files(destination_folder)
+        #unzip_all_gz_files(destination_folder)

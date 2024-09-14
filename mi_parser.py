@@ -81,17 +81,23 @@ class ParseMeminfo():
             excel_path = ParseMeminfo.get_output_excel_path(dir)
             if data_list_all:
                 df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
-                # columns = list(df_all)
-                # columns.insert(1, columns.pop(columns.index('Perceptible')))
-                # columns.insert(1, columns.pop(columns.index('Visible')))
-                # columns.insert(1, columns.pop(columns.index('Foreground')))
-                # columns.insert(1, columns.pop(columns.index('PersistentService')))
-                # columns.insert(1, columns.pop(columns.index('Persistent')))
-                # columns.insert(1, columns.pop(columns.index('System')))
-                # columns.insert(1, columns.pop(columns.index('Native')))
-                # df_reindex = df_all.reindex(columns=columns)
-                if not df_all.empty:
-                    df_all.to_excel(excel_path, index=False)
+                columns = list(df_all.columns)
+                native_index = columns.index('Native')
+                system_index = columns.index('System')
+                
+                columns_to_sort = df_all.columns[(native_index + 1): (system_index -1)]
+
+                print(f"columns_to_sort: {columns_to_sort}")
+                # 按每列的最大值排序
+                sorted_columns = sorted(columns_to_sort, key=lambda col: df_all[col].max(), reverse=False)
+                
+                # 重新排列这些列
+                for col in sorted_columns:
+                    columns.insert(native_index + 1, columns.pop(columns.index(col)))
+                
+                df_reindex = df_all.reindex(columns=columns)
+                if not df_reindex.empty:
+                    df_reindex.to_excel(excel_path, index=False)
                 else:
                     log.warning("All data entries were duplicates.")
             else:
