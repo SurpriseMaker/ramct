@@ -67,7 +67,7 @@ class Show():
     @staticmethod 
     def get_color(index):
         all_colors = ['blue', 'green',  'c', 'k', 'r', 'm', 'pink',
-                      'lime','tomato', 'brown', 'chocolate',
+                      'lime','tomato', 'brown',
                       'gold', 'greenyellow']
         len_all_colors = len(all_colors)
         
@@ -148,6 +148,51 @@ class Show():
         except Exception as e:
             log.error(f"Error writing to file: {e}")
             
+        Show.draw_ram_status_trend(dir, excel_path)
+
+    @staticmethod 
+    def draw_ram_status_trend(dir, excel_path):
+        markers = 'o'
+        
+        try:
+            df = pd.read_excel(excel_path)
+        except FileNotFoundError:
+            log.info(f"draw_ram_status_trend error: could not found: {excel_path}")
+            return
+
+        df_column_list = df.columns.to_list()
+        log.info(f"df={df}")
+        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+
+        ax.set_title("Ram Status Trend, KBs")
+        x_labels = 'file_name'
+        start = df_column_list.index('Free RAM')
+        end = df_column_list.index('ZRAM')
+        for index in range(start, end):
+            y_labels = df_column_list[index]
+            ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
+        ax.legend()
+
+        ax.tick_params(axis='x', labelrotation=30)
+
+        plt.tight_layout()
+
+        h1 = "Ram Status Trend"
+        html_content = Show.gen_html_content(h1)
+    # Ensure dir is defined and valid
+        if dir is None or not os.path.isdir(dir):
+            log.error("Invalid directory path")
+            raise ValueError("Invalid directory path")
+
+        html_path = Show.get_html_path(dir)
+        # 将HTML网页保存到文件
+        try:
+            with open(html_path, 'a') as file:
+                file.write(html_content)
+                mpld3.save_html(fig, file)
+                log.info(f"draw_ram_status_trend, saved to {html_path}")
+        except Exception as e:
+            log.error(f"Error writing to file: {e}")
 
     @staticmethod 
     def draw_killing(dir, excel_path):

@@ -7,8 +7,9 @@ from log_utils import log
 class ParseMeminfo():
     @staticmethod
     def parse_and_get_data(content):
-        end_keyword = 'Total PSS by category'
         data = {}
+        start_keyword = 'Total PSS by OOM adjustment:'
+        end_keyword = 'Total PSS by category'
         start_fetch = False
         # 53,690K: surfaceflinger (pid 1207)                                    (   11,980K in swap)
         pattern = r"(.+)K: (.+)"
@@ -23,9 +24,26 @@ class ParseMeminfo():
                     if name not in data:
                         data[name] = size_kb
             else:
-                if "Total PSS by OOM adjustment:" in line:
+                if start_keyword in line:
                     start_fetch = True
         
+        start_keyword = 'Total RAM:'
+        end_keyword = 'Tuning: '
+        start_fetch = False
+        pattern = r"(.+):\s*([\d,]+)K"
+        for line in content:
+            if end_keyword in line:
+                break
+            if start_fetch:
+                match = re.search(pattern, line)
+                if match:
+                    name = match.group(1).strip()
+                    size_kb = int(match.group(2).replace(',', ''))
+                    if name not in data:
+                        data[name] = size_kb
+            else:
+                if start_keyword in line:
+                    start_fetch = True
         return data
 
     @staticmethod
@@ -83,7 +101,7 @@ class ParseMeminfo():
                 df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
                 columns = list(df_all.columns)
                 native_index = columns.index('Native')
-                system_index = columns.index('System')
+                system_index = columns.index('Foreground')
                 
                 columns_to_sort = df_all.columns[(native_index + 1): (system_index -1)]
 
