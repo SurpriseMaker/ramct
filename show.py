@@ -162,7 +162,7 @@ class Show():
 
         df_column_list = df.columns.to_list()
         log.info(f"df={df}")
-        fig, ax = plt.subplots(1, 1, figsize=(9, 9))
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
 
         ax.set_title("Ram Status Trend, KBs")
         x_labels = 'file_name'
@@ -380,3 +380,80 @@ class Show():
         with open(html_path, 'a') as file:
             file.write(html_content)
             mpld3.save_html(fig, file)
+            
+    @staticmethod
+    def draw_cpu_report(dir, excel_path):
+        MIN_CPU_TO_DRAW = 0.5  # 绘图的最小CPU值，小于此值的进程将不绘图，单位百分比
+        df = pd.read_excel(excel_path)
+
+        numeric_df = df.select_dtypes(include='number')
+        non_numeric_df = df.select_dtypes(exclude='number')
+        numeric_df = numeric_df.loc[:, numeric_df.fillna(0).mean() >= MIN_CPU_TO_DRAW]
+
+        sorted_columns = numeric_df.fillna(0).mean().sort_values(ascending=False).index
+        numeric_df = numeric_df[sorted_columns]
+
+        numeric_df_column_list = numeric_df.columns.to_list()
+
+        # 计算子图的行数和列数
+        num_plots = len(numeric_df_column_list)
+        pages = (num_plots // MAX_ITEMS_EACH_CATEGORY) + (1 if num_plots % MAX_ITEMS_EACH_CATEGORY > 0 else 0)
+
+        log.info(f"draw_cpu_report, num_plots={num_plots}, pages={pages}")
+
+        # 创建HTML内容
+        html_content = f"<h1>CPU Usage by Process, mean {MIN_CPU_TO_DRAW}% or above</h1>"
+
+        # 添加分页按钮
+        html_content += "<div class='pagination'>"
+        for page_num in range(pages):
+            html_content += f"<button onclick='showPage({page_num + 1})'>Page {page_num + 1}</button>"
+        html_content += "</div>"
+
+        # 为每一页创建一个 div
+        for page_num in range(pages):
+            html_content += f"<div class='page' id='page-{page_num + 1}' style='display: {'none' if page_num > 0 else 'block'};'>"
+
+            # 创建子图
+            fig, axs = plt.subplots(MAX_ITEMS_EACH_CATEGORY, 1, figsize=(12, 3 * MAX_ITEMS_EACH_CATEGORY), squeeze=False)
+            for index in range(MAX_ITEMS_EACH_CATEGORY):
+                global_index = page_num * MAX_ITEMS_EACH_CATEGORY + index
+                if global_index < num_plots:
+                    column = numeric_df_column_list[global_index]
+                    ax = axs[index, 0]
+                    ax.set_title(f"CPU Usage for {column} (%)")
+                    ax.plot(non_numeric_df.iloc[:, 0], numeric_df[column], label=column, marker='o', color=Show.get_color(global_index))
+                    ax.legend()
+
+            plt.tight_layout()
+
+            # 保存图表为HTML片段
+            html_snippet = mpld3.fig_to_html(fig)
+            html_content += html_snippet  # 将图表的HTML片段直接添加
+            plt.close(fig)  # 关闭该图形以释放内存
+            html_content += "</div>"
+
+        # 添加分页按钮
+        html_content += "<div class='pagination'>"
+        for page_num in range(pages):
+            html_content += f"<button onclick='showPage({page_num + 1})'>Page {page_num + 1}</button>"
+        html_content += "</div>"
+
+        # 添加JavaScript进行分页
+        javascript = """
+        <script>
+        function showPage(pageNum) {
+            var pages = document.getElementsByClassName('page');
+            for (var i = 0; i < pages.length; i++) {
+                pages[i].style.display = 'none';
+            }
+            document.getElementById('page-' + pageNum).style.display = 'block'; 
+        }
+        </script>
+        """
+
+        html_content += javascript
+
+        html_path = Show.get_html_path(dir)
+        with open(html_path, 'w') as file:
+            file.write(html_content)

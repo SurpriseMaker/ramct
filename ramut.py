@@ -26,7 +26,7 @@ def unzip_all_gz_files(directory):
                     with open(output_file_path, 'wb') as f_out:
                         f_out.write(f_in.read())
                 
-                print(f"解压完成: {gz_file_path} -> {output_file_path}")
+                print(f"unziped: {gz_file_path} -> {output_file_path}")
                 # 删除原文件
                 os.remove(gz_file_path)
 
