@@ -1,6 +1,7 @@
 __version__ = "4.0"
 
 # Change Log:
+# 4.0.2: Rebuild meminfo parser logic.
 # 4.0.1: Draw datetime in ram usages trends.
 # 4.0: Add CPU usages to report.
 # 3.7.0: Add CPU Usages parsing from aplog and drawing.

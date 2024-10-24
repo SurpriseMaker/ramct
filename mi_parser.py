@@ -6,58 +6,16 @@ from log_utils import log
 
 class ParseMeminfo():
     @staticmethod
-    def parse_and_get_data(content):
-        data = {}
-        start_keyword = 'Total PSS by OOM adjustment:'
-        end_keyword = 'Total PSS by category'
-        start_fetch = False
-        # 53,690K: surfaceflinger (pid 1207)                                    (   11,980K in swap)
-        pattern = r"(.+)K: (.+)"
-        for line in content:
-            if end_keyword in line:
-                break
-            if start_fetch:
-                match = re.search(pattern, line)
-                if match:
-                    size_kb = int(match.group(1).replace(',', ''))
-                    name = match.group(2).split('(')[0].replace(' ', '')[:40]
-                    if name not in data:
-                        data[name] = size_kb
-            else:
-                if start_keyword in line:
-                    start_fetch = True
-        
-        start_keyword = 'Total RAM:'
-        end_keyword = 'Tuning: '
-        start_fetch = False
-        pattern = r"(.+):\s*([\d,]+)K"
-        for line in content:
-            if end_keyword in line:
-                break
-            if start_fetch:
-                match = re.search(pattern, line)
-                if match:
-                    name = match.group(1).strip()
-                    size_kb = int(match.group(2).replace(',', ''))
-                    if name not in data:
-                        data[name] = size_kb
-            else:
-                if start_keyword in line:
-                    start_fetch = True
-        return data
+    def read_lines(file_path):
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                yield line
 
     @staticmethod
-    def get_all_dump_file_paths(file_path: str):
-        found_file_path_list = []
-
-        key = 'meminfo'
-        for path, dir_lst, file_lst in os.walk(file_path):
-            for file in fnmatch.filter(file_lst, f'*{key}*'):
-                found = os.path.join(path, file)
-                found_file_path_list.append(found)
-                #log.info(f"找到路径: {found}")
-
-        return found_file_path_list
+    def get_output_excel_path(dir):
+        keyword = os.path.basename(dir)
+        file_path = os.path.join(dir, f"{keyword}_mi.xlsx")
+        return file_path
 
     @staticmethod
     def parse_one_file(file_path: str):
@@ -70,38 +28,55 @@ class ParseMeminfo():
         else:
             return None
 
-        try:
-            with open(file_path, "r") as f:
-                content = f.readlines()
-        except FileNotFoundError:
-            log.error(f"File not found: {file_path}")
-            return None
-        except IOError as e:
-            log.error(f"Error reading file: {file_path}, {e}")
-            return None
+        PATTERN_PSS_OOM = r"(.+)K: (.+)"
+        PATTERN_RAM_CATEGORY = r"(.+):\s*([\d,]+)K"
+        # keyword:  pattern
+        keyword_pattern = {'Total PSS by OOM adjustment:'   : PATTERN_PSS_OOM,
+                           'Total PSS by category'          : None,
+                             'Total RAM:'                   : PATTERN_RAM_CATEGORY,
+                             'Tuning: '                     : None}
+
+        pattern = None
+        for line in ParseMeminfo.read_lines(file_path):
+            for keyword, pattern_info in keyword_pattern.items():
+                if keyword in line:
+                    pattern = pattern_info
+                    break
+            if pattern:
+                match = re.search(pattern, line)
+                if match:
+                    # 53,690K: surfaceflinger (pid 1207)                                    (   11,980K in swap)
+                    if pattern == PATTERN_PSS_OOM:
+                        size_kb = int(match.group(1).replace(',', ''))
+                        name = match.group(2).split('(')[0].replace(' ', '')[:40]
+                        if name not in data:
+                            data[name] = size_kb
+                    elif pattern == PATTERN_RAM_CATEGORY:
+                        name = match.group(1).strip()
+                        size_kb = int(match.group(2).replace(',', ''))
+                        if name not in data:
+                            data[name] = size_kb
         
-        parsed_data = ParseMeminfo.parse_and_get_data(content)
-        if parsed_data:
-            data.update(parsed_data)
-        else:
+        if len(data) <= 1:
             log.info(f"No match found in the file: {file_path}")
 
         return data
 
     @staticmethod
-    def parse_all_files(dir, singal_progress=None):
+    def parse_all_files(dir):
         try:
-            path_list=ParseMeminfo.get_all_dump_file_paths(dir)
             data_list_all = []
-            for path in path_list:
-                try:
-                    data = ParseMeminfo.parse_one_file(path)
-                    if data:
-                        data_list_all.append(data)
-                    if singal_progress:
-                        singal_progress.emit(path)
-                except Exception as e:
-                    log.error(f"Error parsing file {path}: {e}")
+            key = 'meminfo'
+            for path, dir_lst, file_lst in os.walk(dir):
+                for file in fnmatch.filter(file_lst, f'*{key}*'):
+                    file_path = os.path.join(path, file)
+                    try:
+                        data = ParseMeminfo.parse_one_file(file_path)
+                        if data:
+                            data_list_all.append(data)
+
+                    except Exception as e:
+                        log.error(f"Error parsing file {file_path}: {e}")
 
             excel_path = ParseMeminfo.get_output_excel_path(dir)
             if data_list_all:
@@ -135,12 +110,6 @@ class ParseMeminfo():
             excel_path = None
 
         return excel_path
-
-    @staticmethod
-    def get_output_excel_path(dir):
-        keyword = os.path.basename(dir)
-        file_path = os.path.join(dir, f"{keyword}_mi.xlsx")
-        return file_path
 
 
 if __name__ == '__main__':
