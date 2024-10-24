@@ -96,7 +96,7 @@ class Show():
         ax = axs[0][0]
         ax.set_title("Overview, KBs by oom_adj category")
         y_labels_list = ['Native', 'System','Persistent','PersistentService','Foreground','Visible',	'Perceptible']
-        x_labels = 'file_name'
+        x_labels = df_column_list[0]
         for index, y_labels in enumerate(y_labels_list):
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
         ax.legend()
@@ -165,7 +165,7 @@ class Show():
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
 
         ax.set_title("Ram Status Trend, KBs")
-        x_labels = 'file_name'
+        x_labels = df_column_list[0]
         start = df_column_list.index('Free RAM')
         end = df_column_list.index('ZRAM')
         for index in range(start, end):
@@ -383,6 +383,7 @@ class Show():
             
     @staticmethod
     def draw_cpu_report(dir, excel_path):
+        PROCESSES_PER_PAGE = 2  # 每页显示的进程数
         MIN_CPU_TO_DRAW = 0.5  # 绘图的最小CPU值，小于此值的进程将不绘图，单位百分比
         df = pd.read_excel(excel_path)
 
@@ -397,7 +398,7 @@ class Show():
 
         # 计算子图的行数和列数
         num_plots = len(numeric_df_column_list)
-        pages = (num_plots // MAX_ITEMS_EACH_CATEGORY) + (1 if num_plots % MAX_ITEMS_EACH_CATEGORY > 0 else 0)
+        pages = (num_plots // PROCESSES_PER_PAGE) + (1 if num_plots % PROCESSES_PER_PAGE > 0 else 0)
 
         log.info(f"draw_cpu_report, num_plots={num_plots}, pages={pages}")
 
@@ -415,9 +416,9 @@ class Show():
             html_content += f"<div class='page' id='page-{page_num + 1}' style='display: {'none' if page_num > 0 else 'block'};'>"
 
             # 创建子图
-            fig, axs = plt.subplots(MAX_ITEMS_EACH_CATEGORY, 1, figsize=(12, 3 * MAX_ITEMS_EACH_CATEGORY), squeeze=False)
-            for index in range(MAX_ITEMS_EACH_CATEGORY):
-                global_index = page_num * MAX_ITEMS_EACH_CATEGORY + index
+            fig, axs = plt.subplots(PROCESSES_PER_PAGE, 1, figsize=(12, 3 * PROCESSES_PER_PAGE), squeeze=False)
+            for index in range(PROCESSES_PER_PAGE):
+                global_index = page_num * PROCESSES_PER_PAGE + index
                 if global_index < num_plots:
                     column = numeric_df_column_list[global_index]
                     ax = axs[index, 0]
@@ -455,5 +456,5 @@ class Show():
         html_content += javascript
 
         html_path = Show.get_html_path(dir)
-        with open(html_path, 'w') as file:
+        with open(html_path, 'a') as file:
             file.write(html_content)

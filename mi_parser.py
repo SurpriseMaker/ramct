@@ -20,7 +20,7 @@ class ParseMeminfo():
                 match = re.search(pattern, line)
                 if match:
                     size_kb = int(match.group(1).replace(',', ''))
-                    name = match.group(2).split('(')[0].replace(' ', '')
+                    name = match.group(2).split('(')[0].replace(' ', '')[:40]
                     if name not in data:
                         data[name] = size_kb
             else:
@@ -62,7 +62,13 @@ class ParseMeminfo():
     @staticmethod
     def parse_one_file(file_path: str):
         file_name = os.path.basename(file_path)
-        data = {'file_name':file_name}
+        # 匹配日期时间部分
+        match = re.search(r'_(\d{4}_\d{2}_\d{2}(?:_\d{2})?(?:_\d{2})?(?:_\d{2})?)\.txt$', file_name)
+        if match:
+            datetime_str = match.group(1)
+            data = {'date_time':datetime_str}
+        else:
+            return None
 
         try:
             with open(file_path, "r") as f:
@@ -90,7 +96,8 @@ class ParseMeminfo():
             for path in path_list:
                 try:
                     data = ParseMeminfo.parse_one_file(path)
-                    data_list_all.append(data)
+                    if data:
+                        data_list_all.append(data)
                     if singal_progress:
                         singal_progress.emit(path)
                 except Exception as e:
@@ -114,6 +121,8 @@ class ParseMeminfo():
                     columns.insert(native_index + 1, columns.pop(columns.index(col)))
                 
                 df_reindex = df_all.reindex(columns=columns)
+                
+                df_reindex['date_time'] = pd.to_datetime(df_reindex['date_time'], format='%Y_%m_%d_%H_%M_%S')
                 if not df_reindex.empty:
                     df_reindex.to_excel(excel_path, index=False)
                 else:

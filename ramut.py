@@ -10,10 +10,11 @@ from analysis import Analysis
 from killinfo_parser import KillinfoParser
 from launchinfo_parser import LaunchInfoParser
 from pss_parser import PssParser
+from cpu_parser import CpuParser
 from log_utils import log
 from version import __version__
 
-SPLIT_LINE = "##########################################\n##########################################"
+SPLIT_LINE = "################################"
 
 def unzip_all_gz_files(directory):
     for root, dirs, files in os.walk(directory):
@@ -33,6 +34,7 @@ def unzip_all_gz_files(directory):
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)
     log.info(f"Beginning of {data_type} Analysis....")
+    log.info(SPLIT_LINE)
     start_second = time.time()
     try:
         excel_path = parser(dir)
@@ -92,6 +94,9 @@ if __name__ == '__main__':
     # Launch infos Analysis
     analyze_data(LaunchInfoParser.parse_launchinfo, lambda *args: None, Show.draw_launch_info, "Launch infos")
     
+    # CPU Analysis
+    analyze_data(CpuParser.parse_cpu_data, lambda *args: None, Show.draw_cpu_report, "CPU Usage")
+
     # Pss of process Analysis
     analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
     log.info("Finished.")

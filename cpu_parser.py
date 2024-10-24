@@ -28,7 +28,7 @@ class CpuParser():
                 for file in files:
                     if 'Stream-s' in file:
                         file_path = os.path.join(root, file)
-                        log.info(f"Parsing {file_path}")
+                        log.info(f"Parsing CPU data from {file_path}")
                         for line in CpuParser.read_lines(file_path):
                             match = pattern.search(line)
                             if match:
