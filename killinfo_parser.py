@@ -40,25 +40,30 @@ class KillinfoParser():
         return os.path.join(dir, 'killinfo.xlsx')
 
     @staticmethod
+    def read_lines(file_path):
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                yield line
+
+    @staticmethod
     def parse_killinfo(dir):
         killinfo_output_excel_path = None
         data_list = []
         #01-18 17:13:33.654   723   723 I killinfo: [23908,10448,915,201,173576,14,93812,638636,34000,1436,53000,4288,2664712,478784,584484,540460,211764,374244,84116,332916,88448,119632,0,0,840,1016,104,11,0,29268,254540,5,10,2.730000,1.010000,3.010000,0.650000,11.110000]
 
         #pattern = r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,\d+\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\,(\d+\.\d+)\]"
-        pattern = r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,.*"
+        pattern = re.compile(r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,.*")
         for root, dirs, files in os.walk(dir):
             for file in files:
                 if 'Stream-e' in file:
                     file_path = os.path.join(root, file)
                     #log.info(f"Parsing {file_path}")
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        matches = re.findall(pattern, content)
-                        for match in matches:
+                    for line in KillinfoParser.read_lines(file_path):
+                        match = pattern.search(line)
+                        if match:
                             data_list.append({
-                                'date': match[0],
-                                'killed_adj': int(match[1]),
+                                'date': match.group(1),
+                                'killed_adj': int(match.group(2)),
                             })
         
         df = pd.DataFrame(data_list)
@@ -84,10 +89,14 @@ class KillinfoParser():
         grouped.reset_index(inplace=True)
         
         # 将日期字符串转换为日期类型
-        df['date'] = pd.to_datetime(df['date'], format='%m-%d')
+        grouped['date'] = pd.to_datetime(grouped['date'], format='%m-%d')
         
         # 增加一列 heavy_kill_per_hour
         grouped['heavy_kill_per_hour'] = grouped['heavy_kill'] / 24
+        
+        # 移动 heavy_kill_per_hour 列到 date 列之后
+        grouped = grouped[['date', 'heavy_kill_per_hour','heavy_kill', 'critical_kill','medium_kill']]
+
         # 打印每个日期的统计结果
         for _, row in grouped.iterrows():
             log.info(f"Date: {row['date']}")
@@ -168,6 +177,3 @@ if __name__ == '__main__':
     if killinfo_output_excel_path:
         Show.draw_initial_report(log_path, 'test')
         Show.draw_killing(log_path, killinfo_output_excel_path)
-        
-        
-        

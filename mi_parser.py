@@ -2,6 +2,7 @@ import os
 import re
 import fnmatch
 import pandas as pd
+import datetime
 from log_utils import log
 
 class ParseMeminfo():
@@ -26,7 +27,13 @@ class ParseMeminfo():
             datetime_str = match.group(1)
             data = {'date_time':datetime_str}
         else:
-            return None
+            match2 = re.search(r'(\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2})', file_path)
+            if match2:
+                datetime_str = match2.group(1).replace('-', '_')
+                data = {'date_time':datetime_str}
+            else:
+                log.warning(f"No date time found in file name: {file_path}")
+                return None
 
         PATTERN_PSS_OOM = r"(.+)K: (.+)"
         PATTERN_RAM_CATEGORY = r"(.+):\s*([\d,]+)K"
@@ -59,6 +66,7 @@ class ParseMeminfo():
         
         if len(data) <= 1:
             log.info(f"No match found in the file: {file_path}")
+            return None
 
         return data
 
@@ -66,24 +74,25 @@ class ParseMeminfo():
     def parse_all_files(dir):
         try:
             data_list_all = []
-            key = 'meminfo'
+            key_list = ['meminfo', 'bugreport-']
             for path, dir_lst, file_lst in os.walk(dir):
-                for file in fnmatch.filter(file_lst, f'*{key}*'):
-                    file_path = os.path.join(path, file)
-                    try:
-                        data = ParseMeminfo.parse_one_file(file_path)
-                        if data:
-                            data_list_all.append(data)
+                for key in key_list:
+                    for file in fnmatch.filter(file_lst, f'*{key}*.txt'):
+                        file_path = os.path.join(path, file)
+                        try:
+                            data = ParseMeminfo.parse_one_file(file_path)
+                            if data:
+                                data_list_all.append(data)
 
-                    except Exception as e:
-                        log.error(f"Error parsing file {file_path}: {e}")
+                        except Exception as e:
+                            log.error(f"Error parsing file {file_path}: {e}")
 
             excel_path = ParseMeminfo.get_output_excel_path(dir)
             if data_list_all:
                 df_all = (pd.DataFrame(data_list_all)).drop_duplicates()
                 columns = list(df_all.columns)
                 native_index = columns.index('Native')
-                system_index = columns.index('Foreground')
+                system_index = columns.index('System')
                 
                 columns_to_sort = df_all.columns[(native_index + 1): (system_index -1)]
 
@@ -97,7 +106,7 @@ class ParseMeminfo():
                 
                 df_reindex = df_all.reindex(columns=columns)
                 
-                df_reindex['date_time'] = pd.to_datetime(df_reindex['date_time'], format='%Y_%m_%d_%H_%M_%S')
+                df_reindex['date_time'] = pd.to_datetime(df_reindex['date_time'], format='%Y_%m_%d_%H_%M_%S', errors='coerce')
                 if not df_reindex.empty:
                     df_reindex.to_excel(excel_path, index=False)
                 else:

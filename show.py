@@ -203,15 +203,15 @@ class Show():
         
         # 计算子图的行数和列数, df的第一列是时间戳
         num_plots = len(df_column_list) - 1
-        cols = 3
+        cols = 2
         rows = num_plots // cols + 1 if num_plots % cols != 0 else num_plots // cols
 
         fig, axs = plt.subplots(rows, cols, figsize=(12, 4 * rows))
 
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(df_column_list[1:]):
-            row = index // 3
-            coloum = index % 3
+            row = index // cols
+            coloum = index % cols
             if rows > 1:
                 ax = axs[row][coloum]
             else:
@@ -387,23 +387,27 @@ class Show():
         MIN_CPU_TO_DRAW = 0.5  # 绘图的最小CPU值，小于此值的进程将不绘图，单位百分比
         df = pd.read_excel(excel_path)
 
-        numeric_df = df.select_dtypes(include='number')
-        non_numeric_df = df.select_dtypes(exclude='number')
-        numeric_df = numeric_df.loc[:, numeric_df.fillna(0).mean() >= MIN_CPU_TO_DRAW]
+        datetime_df = df.iloc[:, 0]  # 使用 iloc 选取第一列作为时间戳
+        category_df = df.iloc[:, 1:5]  # 使用 iloc 选取第2-5列作为分类数据
+        processes_df = df.iloc[:, 5:]  # 使用 iloc 选取后面的所有列
 
-        sorted_columns = numeric_df.fillna(0).mean().sort_values(ascending=False).index
-        numeric_df = numeric_df[sorted_columns]
+        processes_df = processes_df.loc[:, processes_df.fillna(0).mean() >= MIN_CPU_TO_DRAW]
 
-        numeric_df_column_list = numeric_df.columns.to_list()
+        sorted_columns = processes_df.fillna(0).mean().sort_values(ascending=False).index
+        processes_df = processes_df[sorted_columns]
+        # 合并分类数据和进程数据
+        df_to_draw = pd.concat([category_df, processes_df], axis=1)
+
+        column_list_to_draw = df_to_draw.columns.to_list()
 
         # 计算子图的行数和列数
-        num_plots = len(numeric_df_column_list)
+        num_plots = len(column_list_to_draw)
         pages = (num_plots // PROCESSES_PER_PAGE) + (1 if num_plots % PROCESSES_PER_PAGE > 0 else 0)
 
         log.info(f"draw_cpu_report, num_plots={num_plots}, pages={pages}")
 
         # 创建HTML内容
-        html_content = f"<h1>CPU Usage by Process, mean {MIN_CPU_TO_DRAW}% or above</h1>"
+        html_content = f"<h1>CPU Usages, mean {MIN_CPU_TO_DRAW}% or above</h1>"
 
         # 添加分页按钮
         html_content += "<div class='pagination'>"
@@ -420,10 +424,10 @@ class Show():
             for index in range(PROCESSES_PER_PAGE):
                 global_index = page_num * PROCESSES_PER_PAGE + index
                 if global_index < num_plots:
-                    column = numeric_df_column_list[global_index]
+                    column = column_list_to_draw[global_index]
                     ax = axs[index, 0]
-                    ax.set_title(f"CPU Usage for {column} (%)")
-                    ax.plot(non_numeric_df.iloc[:, 0], numeric_df[column], label=column, marker='o', color=Show.get_color(global_index))
+                    ax.set_title(f"{column} (%)")
+                    ax.plot(datetime_df, df_to_draw[column], label=column, marker='o', color=Show.get_color(global_index))
                     ax.legend()
 
             plt.tight_layout()

@@ -1,6 +1,7 @@
 import os
 import re
 import pandas as pd
+from tqdm import tqdm
 from log_utils import log
 from show import Show
 
@@ -21,20 +22,36 @@ class CpuParser():
     def parse_cpu_data(dir: str):
             data_list = []
             data = {}
-            # 08-17 04:56:09.163  1953  2750 I ActivityManager:
-            pattern = re.compile(r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+ActivityManager:\s+(\d+)% \d+/(\S+):")
+            # 08-11 23:48:36.443  1903  2548 I ActivityManager: 25% TOTAL: 12% user + 10% kernel + 0.2% iowait + 1.4% irq + 0.2% softirq
+            pattern1 = re.compile(r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+ActivityManager:\s+(\d+\.?\d?)% TOTAL:\s+(\d+\.?\d?)% user\s+\+\s+(\d+\.?\d?)% kernel\s+\+\s+(\d+\.?\d?)%\s+iowait")
+            # 09-15 13:41:42.204  2439  2857 I ActivityManager:   87% 9727/com.tencent.mm: 59% user + 27% kernel / faults: 32766 minor 5353 major
+            pattern2 = re.compile(r"(\d{2}-\d{2} \d{2}:\d{2}:\d{2})\.\d{3}\s+\d+\s+\d+\s+I\s+ActivityManager:\s+(\d+)% \d+/(\S+):")
 
             for root, dirs, files in os.walk(dir):
-                for file in files:
+                for file in tqdm(files, desc="Processing files", unit="file"):
                     if 'Stream-s' in file:
                         file_path = os.path.join(root, file)
-                        log.info(f"Parsing CPU data from {file_path}")
-                        for line in CpuParser.read_lines(file_path):
-                            match = pattern.search(line)
-                            if match:
-                                date_time = match.group(1)
-                                cpu_percent = int(match.group(2))
-                                process_name = match.group(3)
+                        for line in tqdm(CpuParser.read_lines(file_path), desc=f"Reading {file}", unit="line"):
+                            match1 = pattern1.search(line)
+                            if match1:
+                                date_time = match1.group(1)
+                                total_percent = float(match1.group(2))
+                                user_percent = float(match1.group(3))
+                                kernel_percent = float(match1.group(4))
+                                iowait_percent = float(match1.group(5))
+                                if date_time not in data:
+                                    if data:
+                                        data_list.append(data)
+                                    data = {'date_time': date_time}
+                                data['total'] = total_percent
+                                data['user'] = user_percent
+                                data['kernel'] = kernel_percent
+                                data['iowait'] = iowait_percent
+                            match2 = pattern2.search(line)
+                            if match2:
+                                date_time = match2.group(1)
+                                cpu_percent = float(match2.group(2))
+                                process_name = match2.group(3)
                                 if date_time not in data:
                                     if data:
                                         data_list.append(data)
