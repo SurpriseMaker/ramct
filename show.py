@@ -80,9 +80,8 @@ class Show():
     
     @staticmethod 
     def draw_ram_trend(dir, excel_path):
-        
         markers = 'o'
-        
+
         try:
             df = pd.read_excel(excel_path)
         except FileNotFoundError:
@@ -95,13 +94,17 @@ class Show():
         
         ax = axs[0][0]
         ax.set_title("Overview, KBs by oom_adj category")
-        y_labels_list = ['Native', 'System','Persistent','PersistentService','Foreground','Visible',	'Perceptible']
+        y_labels_list = ['Native', 'System','Persistent','PersistentService','Foreground','Visible','Perceptible']
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(y_labels_list):
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
         ax.legend()
         
-        y_labels_list.append('PerceptibleMedium')
+        for end_tag in ['PerceptibleMedium', 'PerceptibleLow', 'AServices', 'Previous', 'BServices', 'Cached']:
+            if end_tag in df_column_list:
+                y_labels_list.append(end_tag)
+                break
+
         for index1, label in enumerate(y_labels_list):
             if index1 >= len(y_labels_list) -1:
                 break
@@ -420,7 +423,7 @@ class Show():
             html_content += f"<div class='page' id='page-{page_num + 1}' style='display: {'none' if page_num > 0 else 'block'};'>"
 
             # 创建子图
-            fig, axs = plt.subplots(PROCESSES_PER_PAGE, 1, figsize=(12, 3 * PROCESSES_PER_PAGE), squeeze=False)
+            fig, axs = plt.subplots(PROCESSES_PER_PAGE, 1, figsize=(12, 2 * PROCESSES_PER_PAGE), squeeze=False)
             for index in range(PROCESSES_PER_PAGE):
                 global_index = page_num * PROCESSES_PER_PAGE + index
                 if global_index < num_plots:
