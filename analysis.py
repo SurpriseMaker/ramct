@@ -69,12 +69,14 @@ class Analysis():
 
     @staticmethod
     def drop_non_perceptible_data(dataframe:pd.DataFrame):
-        light_labels_list = ['PerceptibleMedium', 'AServices', 'BServices','Cached','Previous']
+        light_labels_list = ['PerceptibleMedium', 'PerceptibleLow', 'AServices', 'Previous','BServices','Cached']
         columns = list(dataframe)
         col_index=None
-         # Find the first matching column index
-        col_index = next((columns.index(col_name) for col_name in light_labels_list 
-                          if col_name in columns), None)
+        for col_name in light_labels_list:
+            if col_name in columns:
+                if col_index is None or col_index > columns.index(col_name):
+                    col_index = columns.index(col_name)
+
         if col_index:
             columns_to_del = columns[col_index:]
             dataframe = dataframe.drop(columns=columns_to_del)
