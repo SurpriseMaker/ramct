@@ -1,6 +1,7 @@
 __version__ = "4.1.2"
 
 # Change Log:
+# 4.1.5: Support parsing of FPS logs.
 # 4.1.4: Support zip format logs.
 # 4.1.4: Change the unit of ram usages in report to MB.
 # 4.1.3: Fix error in dropping non perceptible columns in abnormal report.

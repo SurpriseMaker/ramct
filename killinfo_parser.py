@@ -55,7 +55,7 @@ class KillinfoParser():
         pattern = re.compile(r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+killinfo:\s+\[\d+\,\d+\,(\d+)\,.*")
         for root, dirs, files in os.walk(dir):
             for file in files:
-                if 'Stream-e' in file:
+                if 'Stream-e' in file or 'log_' in file:
                     file_path = os.path.join(root, file)
                     #log.info(f"Parsing {file_path}")
                     for line in KillinfoParser.read_lines(file_path):

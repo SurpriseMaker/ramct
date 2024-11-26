@@ -139,7 +139,7 @@ class LaunchInfoParser():
         pattern = r"(\d{2}-\d{2}) \d{2}:\d{2}:\d{2}\.\d{3}\s+\d+\s+\d+\s+I\s+LaunchCheckinHandler: MotoDisplayed [^,]+\,(\w+)\,(\w+)\,(\d+)"
         for root, dirs, files in os.walk(dir):
             for file in files:
-                if 'Stream-s' in file:
+                if 'Stream-s' in file or 'log_' in file:
                     file_path = os.path.join(root, file)
                     #log.info(f"Parsing {file_path}")
                     with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
