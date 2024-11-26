@@ -1,6 +1,7 @@
 __version__ = "4.1.2"
 
 # Change Log:
+# 4.1.4: Change the unit of ram usages in report to MB.
 # 4.1.3: Fix error in dropping non perceptible columns in abnormal report.
 # 4.1.2: Fix error in drawing ram trend when no PerceptibleMedium column.
 # 4.1.1: Show progress bar when parsing CPU usages.

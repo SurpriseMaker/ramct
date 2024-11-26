@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from log_utils import log
 
-
+KBYTES_PER_MB = 1024
 MAX_ITEMS_EACH_CATEGORY = 8
 class Show():
     @staticmethod 
@@ -93,11 +93,11 @@ class Show():
         fig, axs = plt.subplots(4, 2, figsize=(12, 25))
         
         ax = axs[0][0]
-        ax.set_title("Overview, KBs by oom_adj category")
+        ax.set_title("Overview, MBs by oom_adj category")
         y_labels_list = ['Native', 'System','Persistent','PersistentService','Foreground','Visible','Perceptible']
         x_labels = df_column_list[0]
         for index, y_labels in enumerate(y_labels_list):
-            ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
+            ax.plot(df[x_labels], df[y_labels]//KBYTES_PER_MB, label=y_labels, marker=markers, color=Show.get_color(index))
         ax.legend()
         
         for end_tag in ['PerceptibleMedium', 'PerceptibleLow', 'AServices', 'Previous', 'BServices', 'Cached']:
@@ -121,11 +121,11 @@ class Show():
                 continue
             log.info(f"label={label}, start={start}, end = {end}, row = {row}, column = {column}")
             ax = axs[row][column]
-            title = f"{label}, KBs by process"
+            title = f"{label}, MBs by process"
             ax.set_title(title)
             for index2 in range(start, end):
                 y_labels = df_column_list[index2]
-                ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index2))
+                ax.plot(df[x_labels], df[y_labels]//KBYTES_PER_MB, label=y_labels, marker=markers, color=Show.get_color(index2))
             ax.legend()
         
         for ax in axs.flatten():
@@ -167,13 +167,13 @@ class Show():
         log.info(f"df={df}")
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
 
-        ax.set_title("Ram Status Trend, KBs")
+        ax.set_title("Ram Status Trend, MBs")
         x_labels = df_column_list[0]
         start = df_column_list.index('Free RAM')
         end = df_column_list.index('ZRAM')
         for index in range(start, end):
             y_labels = df_column_list[index]
-            ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
+            ax.plot(df[x_labels], df[y_labels]//KBYTES_PER_MB, label=y_labels, marker=markers, color=Show.get_color(index))
         ax.legend()
 
         ax.tick_params(axis='x', labelrotation=30)
@@ -302,8 +302,9 @@ class Show():
                 ax = axs[row][coloum]
             else:
                 ax = axs[coloum]
-            ax.set_title(name)
-            ax.plot(df[x_labels], df[name], label=name, marker=markers, color=Show.get_color(index))
+            title = f"{name}, MBs"
+            ax.set_title(title)
+            ax.plot(df[x_labels], df[name]//KBYTES_PER_MB, label=name, marker=markers, color=Show.get_color(index))
             
         for ax in axs.flatten():
             ax.tick_params(axis='x', labelrotation=30)
@@ -365,8 +366,8 @@ class Show():
                 ax = axs[ax_row]
             else:
                 ax = axs
-            ax.set_title("PSS by Process in KBs")
-            ax.plot(df_index, df[column], label=column, marker='o', color=Show.get_color(index))
+            ax.set_title("PSS by Process in MBs")
+            ax.plot(df_index, df[column]//KBYTES_PER_MB, label=column, marker='o', color=Show.get_color(index))
             ax.legend()
         
         if cols == 1 and rows == 1:

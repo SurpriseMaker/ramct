@@ -4,6 +4,7 @@ import os
 from show import Show
 from log_utils import log
 
+KBYTES_PER_MB = 1024
 class Analysis():
     @staticmethod
     def get_abnormal_excel_path(dir):
@@ -39,6 +40,7 @@ class Analysis():
         dataframe = Analysis.clean_data(dataframe)
         abnormal_data_list = []
         columns = list(dataframe.columns)
+        log.info(f"detect_abnormal_data: ref_cov={ref_cov}, ref_diff={ref_diff}")
         for col in columns[1:]:
             df_col = dataframe[col].dropna()
             if df_col.empty:
@@ -54,10 +56,10 @@ class Analysis():
                     data = {}
                     data['process'] = col
                     data['cov'] = cov
-                    data['min'] = val_min
-                    data['max'] = val_max
-                    data['initial'] = val_initial
-                    data['end'] = val_end
+                    data['min_mB'] = val_min//KBYTES_PER_MB
+                    data['max_mB'] = val_max//KBYTES_PER_MB
+                    data['initial_mB'] = val_initial//KBYTES_PER_MB
+                    data['end_mB'] = val_end//KBYTES_PER_MB
                     abnormal_data_list.append(data)
         return abnormal_data_list
     
@@ -77,6 +79,7 @@ class Analysis():
                 if col_index is None or col_index > columns.index(col_name):
                     col_index = columns.index(col_name)
 
+        log.info(f"drop_non_perceptible_data: col_index={col_index}")
         if col_index:
             columns_to_del = columns[col_index:]
             dataframe = dataframe.drop(columns=columns_to_del)
@@ -90,7 +93,7 @@ class Analysis():
         try:
             dataframe = dataframe.drop(columns=columns_to_del)
         except KeyError:
-            log(f"{columns_to_del} not found")
+            log.info(f"{columns_to_del} not found")
         return dataframe
         
     @staticmethod
@@ -98,7 +101,7 @@ class Analysis():
         try:
             df_all = pd.read_excel(input_excel_path)
         except FileNotFoundError:
-            log(f"analyze error: could not found: {input_excel_path}")
+            log.info(f"analyze error: could not found: {input_excel_path}")
             return
 
         abnormal_data_list = Analysis.detect_abnormal_data(df_all, ref_cov, ref_diff)
