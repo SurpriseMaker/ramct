@@ -3,6 +3,7 @@ import os, sys
 import traceback
 import gzip
 import time
+import zipfile
 
 from mi_parser import ParseMeminfo
 from show import Show
@@ -30,6 +31,21 @@ def unzip_all_gz_files(directory):
                 print(f"unziped: {gz_file_path} -> {output_file_path}")
                 # 删除原文件
                 os.remove(gz_file_path)
+                
+            if file.endswith('.zip'):
+                zip_file_path = os.path.join(root, file)
+                
+                try:
+                    with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+                        zip_ref.extractall(root)
+
+                    print(f"解压: {zip_file_path} -> {root}")
+                    # 删除原文件
+                    os.remove(zip_file_path)
+                except zipfile.BadZipFile:
+                    print(f"错误: 文件 {zip_file_path} 不是一个有效的 ZIP 文件或已经损坏。")
+                except Exception as e:
+                    print(f"解压文件时发生错误 {zip_file_path}: {e}")
 
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)
@@ -98,5 +114,5 @@ if __name__ == '__main__':
     analyze_data(CpuParser.parse_cpu_data, lambda *args: None, Show.draw_cpu_report, "CPU Usage")
 
     # Pss of process Analysis
-    analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
+    #analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
     log.info("Finished.")
