@@ -47,6 +47,33 @@ def unzip_all_gz_files(directory):
                 except Exception as e:
                     print(f"解压文件时发生错误 {zip_file_path}: {e}")
 
+
+def read_version_file(dir_path):
+    """
+    遍历指定目录查找version.txt文件并读取其内容
+    
+    参数:
+        dir_path (str): 要搜索的目录路径
+        
+    返回:
+        str: version.txt文件的内容，如果找不到文件则返回None
+    """
+    version_content = None
+    
+    # 遍历目录
+    for root, dirs, files in os.walk(dir_path):
+        if 'version.txt' in files:
+            version_path = os.path.join(root, 'version.txt')
+            try:
+                with open(version_path, 'r', encoding='utf-8') as f:
+                    version_content = f.read().strip()
+                break  # 找到文件后停止搜索
+            except IOError as e:
+                print(f"无法读取version.txt文件: {e}")
+                return None
+    
+    return version_content
+
 def analyze_data(parser, analysis_func, show_func, data_type):
     log.info(SPLIT_LINE)
     log.info(f"Beginning of {data_type} Analysis....")
@@ -97,14 +124,18 @@ if __name__ == '__main__':
                 sys.exit(1)
 
     unzip_all_gz_files(dir)
-    report_titile = f"RamUT Report for {dir}, version:{__version__}"
+    sw_version = read_version_file(dir)
+    report_titile = (f"RamUT Report for {dir}\n"
+                   f"build version:{sw_version}\n"
+                   f"tool version:{__version__}")
+
     Show.draw_initial_report(dir, report_titile)
 
     # Ram Consumption Analysis
     analyze_data(ParseMeminfo.parse_all_files, Analysis.analyze, Show.draw_ram_trend, "Ram Usage")
     
     # Kill infos Analysis
-    analyze_data(KillinfoParser.parse_killinfo, lambda *args: None, Show.draw_killing, "Kill infos")
+    analyze_data(KillinfoParser.parse_kill_categories, lambda *args: None, Show.draw_killing, "Kill infos")
     #analyze_data(KillinfoParser.parse_process_die_info, lambda *args: None, Show.draw_killing, "Die infos")
     
     # Launch infos Analysis
@@ -114,5 +145,5 @@ if __name__ == '__main__':
     analyze_data(CpuParser.parse_cpu_data, lambda *args: None, Show.draw_cpu_report, "CPU Usage")
 
     # Pss of process Analysis
-    #analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
+    analyze_data(PssParser.parse_pss_data, lambda *args: None, Show.draw_pss_report, "Pss of process")
     log.info("Finished.")

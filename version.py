@@ -1,6 +1,8 @@
-__version__ = "4.1.2"
+__version__ = "4.2.1"
 
-# Change Log:
+# Change history:
+# 4.2.1: Add support for parsing sw build version.
+# 4.2.0: Add support for parsing apk versions.
 # 4.1.5: Support parsing of FPS logs.
 # 4.1.4: Support zip format logs.
 # 4.1.4: Change the unit of ram usages in report to MB.

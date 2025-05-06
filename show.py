@@ -5,6 +5,7 @@ import html
 import pandas as pd
 import numpy as np
 from log_utils import log
+from version_parser import VersionParser
 
 KBYTES_PER_MB = 1024
 MAX_ITEMS_EACH_CATEGORY = 8
@@ -15,30 +16,41 @@ class Show():
     
     @staticmethod
     def gen_html_title(title):
-        
-        # 生成HTML标题
+        # 生成HTML标题（支持多行）
         template = """
         <html>
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>RamUT Report</title>
+            <style>
+                .title-line {{
+                    display: block;
+                    margin: 5px 0;
+                }}
+            </style>
         </head>
         <body>
-            <h1 style="text-align: center; color: blue;">{}</h1>
+            <h1 style="text-align: center; color: blue;">
+                {0}
+            </h1>
         </body>
         </html>
         """
         
-        # Sanitize the input to prevent HTML injection
-        sanitized_title = html.escape(title)
+        # 处理多行标题
         try:
-            output = template.format(sanitized_title)
+            # 分割标题为多行并转义HTML
+            lines = [html.escape(line.strip()) for line in title.split('\n') if line.strip()]
+            formatted_lines = '<br>'.join(lines)
+            
+            output = template.format(formatted_lines)
         except Exception as e:
-            # Handle any potential exceptions during string formatting
             output = template.format("Error: Invalid input")
             log.info(f"Error generating HTML content: {e}")
         return output
+
+
         
     @staticmethod 
     def gen_html_content(h1: str):
@@ -198,21 +210,21 @@ class Show():
             log.error(f"Error writing to file: {e}")
 
     @staticmethod 
-    def draw_killing(dir, excel_path):
+    def draw_killing(dir, excel_path, colomn_index_as_x_labels=0):
         markers = 'o'
 
         df = pd.read_excel(excel_path)
         df_column_list = df.columns.to_list()
         
         # 计算子图的行数和列数, df的第一列是时间戳
-        num_plots = len(df_column_list) - 1
+        num_plots = len(df_column_list) - 2
         cols = 2
         rows = num_plots // cols + 1 if num_plots % cols != 0 else num_plots // cols
 
         fig, axs = plt.subplots(rows, cols, figsize=(12, 4 * rows))
 
-        x_labels = df_column_list[0]
-        for index, y_labels in enumerate(df_column_list[1:]):
+        x_labels = df_column_list[colomn_index_as_x_labels]
+        for index, y_labels in enumerate(df_column_list[2:]):
             row = index // cols
             coloum = index % cols
             if rows > 1:
@@ -220,10 +232,13 @@ class Show():
             else:
                 ax = axs[coloum]
             ax.set_title(y_labels)
+            if colomn_index_as_x_labels == 1:
+                ax.set_xticks(range(len(df[x_labels])))  # 设置固定的刻度位置
+                ax.set_xticklabels(df[x_labels], rotation=30)  # 设置 x 轴标签为字符串并旋转
             ax.plot(df[x_labels], df[y_labels], label=y_labels, marker=markers, color=Show.get_color(index))
             
-        for ax in axs.flatten():
-            ax.tick_params(axis='x', labelrotation=30)
+        # for ax in axs.flatten():
+        #     ax.tick_params(axis='x', labelrotation=30)
             
         plt.tight_layout()
         
@@ -332,30 +347,20 @@ class Show():
         MIN_PSS_TO_DRAW = 200000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
         df = pd.read_excel(excel_path)
         
-        # 获取DataFrame的索引
-        df_index = df.index
-        
-        # 去掉列元素最大值小于MIN_PSS_TO_DRAW的列
-        df = df.loc[:, df.max() >= MIN_PSS_TO_DRAW]
+        # 按 package 分组并绘制趋势图
+        packages = df['package'].unique()
 
-        # 按列中元素的最大值排序
-        sorted_columns = df.max().sort_values(ascending=False).index
-        df = df[sorted_columns]
-
-        df_column_list = df.columns.to_list()
 
         # 计算子图的行数和列数
-        num_plots = len(df_column_list)
+        num_plots = len(packages)
         cols = 1
         rows = num_plots// MAX_ITEMS_EACH_CATEGORY // cols + 1 if num_plots % MAX_ITEMS_EACH_CATEGORY != 0 or MAX_ITEMS_EACH_CATEGORY==1 else num_plots// MAX_ITEMS_EACH_CATEGORY // cols
-
         log.info(f"draw_pss_report, num_plots={num_plots}, rows={rows}, cols={cols}")
-        
         # 创建子图
         fig, axs = plt.subplots(rows, cols, figsize=(12, 12 * rows))
-        
         # 遍历每一列并绘图
-        for index, column in enumerate(df_column_list):
+        for index, package  in enumerate(packages):
+            package_data = df[df['package'] == package]
             ax_row = index// MAX_ITEMS_EACH_CATEGORY // cols
             ax_coloum = index // MAX_ITEMS_EACH_CATEGORY % cols
             if rows > 1 and cols > 1:
@@ -367,17 +372,14 @@ class Show():
             else:
                 ax = axs
             ax.set_title("PSS by Process in MBs")
-            ax.plot(df_index, df[column]//KBYTES_PER_MB, label=column, marker='o', color=Show.get_color(index))
+            ax.plot(package_data['datetime'], package_data['pss']//KBYTES_PER_MB, label=package, marker='o', color=Show.get_color(index))
             ax.legend()
-        
         if cols == 1 and rows == 1:
             ax.tick_params(axis='x', labelrotation=30)
         else:
             for ax in axs.flatten():
                 ax.tick_params(axis='x', labelrotation=30)
-
         plt.tight_layout()
-        
         h1 = f"PSS by Process, peak {MIN_PSS_TO_DRAW} KBs or above "
         html_content = Show.gen_html_content(h1)
         html_path = Show.get_html_path(dir)

@@ -29,7 +29,7 @@ class CpuParser():
 
             for root, dirs, files in os.walk(dir):
                 for file in tqdm(files, desc="Processing files", unit="file"):
-                    if 'Stream-s' in file:
+                    if 'Stream-s' in file or 'system' in file:
                         file_path = os.path.join(root, file)
                         for line in tqdm(CpuParser.read_lines(file_path), desc=f"Reading {file}", unit="line"):
                             match1 = pattern1.search(line)

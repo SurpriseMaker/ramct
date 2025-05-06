@@ -4,6 +4,8 @@ import fnmatch
 import pandas as pd
 import datetime
 from log_utils import log
+from version_parser import VersionParser
+from typing import Dict, List, Optional, Tuple
 
 class ParseMeminfo():
     @staticmethod
@@ -19,21 +21,16 @@ class ParseMeminfo():
         return file_path
 
     @staticmethod
-    def parse_one_file(file_path: str):
+    def parse_one_file(file_path: str, versions_dict: Dict[str, str]):
         file_name = os.path.basename(file_path)
         # 匹配日期时间部分
-        match = re.search(r'_(\d{4}_\d{2}_\d{2}(?:_\d{2})?(?:_\d{2})?(?:_\d{2})?)\.txt$', file_name)
+        match = re.search(r'[-_](\d{4}[-_]\d{2}[-_]\d{2}(?:[-_]\d{2})?(?:[-_]\d{2})?(?:[-_]\d{2})?)\.txt$', file_name)
         if match:
-            datetime_str = match.group(1)
+            datetime_str = match.group(1).replace('-', '_')
             data = {'date_time':datetime_str}
         else:
-            match2 = re.search(r'(\d{4}-\d{2}-\d{2}_\d{2}_\d{2}_\d{2})', file_path)
-            if match2:
-                datetime_str = match2.group(1).replace('-', '_')
-                data = {'date_time':datetime_str}
-            else:
-                log.warning(f"No date time found in file name: {file_path}")
-                return None
+            log.warning(f"No date time found in file name: {file_path}")
+            return None
 
         PATTERN_PSS_OOM = r"(.+)K: (.+)"
         PATTERN_RAM_CATEGORY = r"(.+):\s*([\d,]+)K"
@@ -57,6 +54,8 @@ class ParseMeminfo():
                         size_kb = int(match.group(1).replace(',', ''))
                         name = match.group(2).split('(')[0].replace(' ', '')[:40]
                         if name not in data:
+                            if name in versions_dict:
+                                name = f"{name}({versions_dict[name]})"
                             data[name] = size_kb
                     elif pattern == PATTERN_RAM_CATEGORY:
                         name = match.group(1).strip()
@@ -72,15 +71,18 @@ class ParseMeminfo():
 
     @staticmethod
     def parse_all_files(dir):
+        versions_dict = VersionParser.parse_apk_versions_from_latest_bugreport(dir)
+        if not versions_dict:
+            log.warning(f"No apk versions found in directory {dir}")
         try:
             data_list_all = []
-            key_list = ['meminfo', 'bugreport-']
+            key_list = ['meminfo']
             for path, dir_lst, file_lst in os.walk(dir):
                 for key in key_list:
                     for file in fnmatch.filter(file_lst, f'*{key}*.txt'):
                         file_path = os.path.join(path, file)
                         try:
-                            data = ParseMeminfo.parse_one_file(file_path)
+                            data = ParseMeminfo.parse_one_file(file_path, versions_dict)
                             if data:
                                 data_list_all.append(data)
 
