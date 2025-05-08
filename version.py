@@ -1,6 +1,7 @@
 __version__ = "4.2.1"
 
 # Change history:
+# 4.3.0: rebuild pss parser and UI screen.
 # 4.2.1: Add support for parsing sw build version.
 # 4.2.0: Add support for parsing apk versions.
 # 4.1.5: Support parsing of FPS logs.

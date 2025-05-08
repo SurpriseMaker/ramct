@@ -6,6 +6,9 @@ import pandas as pd
 import numpy as np
 from log_utils import log
 from version_parser import VersionParser
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import math
 
 KBYTES_PER_MB = 1024
 MAX_ITEMS_EACH_CATEGORY = 8
@@ -344,48 +347,90 @@ class Show():
             
     @staticmethod
     def draw_pss_report(dir, excel_path):
-        MIN_PSS_TO_DRAW = 200000 # 绘图的最小PSS值，小于此值的进程将不绘图，单位KB
+        MIN_PSS_TO_DRAW = 200000  # KB
+
         df = pd.read_excel(excel_path)
+        df = df[df['pss'] >= MIN_PSS_TO_DRAW]  # 前置过滤
+
+        # 1. 动态计算最佳布局
+        packages = df.groupby('package')['pss'].max().sort_values(ascending=False).index
+        n_plots = len(packages)
+        rows = math.ceil(n_plots / 2)  # 每行2图
+
+        # 2. 创建响应式画布
+        fig = make_subplots(
+            rows=rows, cols=2,
+            subplot_titles=[f"<b>{pkg}</b>" for pkg in packages],
+            shared_yaxes=True
+        )
+
+        # 3. 高性能批量绘图
+        for i, pkg in enumerate(packages):
+            pkg_data = df[df['package'] == pkg]
+            row = (i // 2) + 1
+            col = (i % 2) + 1
+
+            fig.add_trace(
+                go.Scatter(
+                    x=pkg_data['datetime'],
+                    y=pkg_data['pss']/1024,  # 直接转换为MB
+                    name=pkg,
+                    mode='lines+markers',
+                    marker_symbol=i % 30,
+                    line_shape='spline',
+                    hovertemplate="<b>%{y:.1f} MB</b><br>%{x|%H:%M}</b><extra></extra>"
+                ),
+                row=row, col=col
+            )
+
+        # 4. 智能交互配置
+        fig.update_layout(
+            # 精确高度控制
+            height=100 + (300 * rows),  # 标题区100px + 内容区300px/行
+
+            # 紧凑标题设置
+            title={
+                'text': f"PSS Report (>{MIN_PSS_TO_DRAW//1024} MB)",
+                'y': 1.0,  # 顶部
+                'yanchor': 'top',
+                'font': {'size': 24},
+                'pad': {'t': 5, 'b': 5}  # 标题内边距（上下各5px）
+            },
+
+            # 边距精细控制（单位：px）
+            margin=dict(
+                t=80,    # 增加顶部边距（原30+50）
+                b=20,
+                l=60,
+                r=40,
+                pad=50   # 新增：图表区域整体下移50px
+            ),
+            updatemenus=[{
+                "buttons": [
+                    {"method": "relayout", "label": "Linear", "args": [{"yaxis.type": "linear"}]},
+                    {"method": "relayout", "label": "Log", "args": [{"yaxis.type": "log"}]}
+                ],
+                "type": "dropdown",
+                "x": 0.5,
+                "y": 0.99  # 贴近顶部
+            }]
+        )
+
+
+        # 5. 输出优化
+
+        html_path = os.path.join(dir, "pss_report.html")
+        fig.write_html(
+            html_path,
+            full_html=True,
+            include_plotlyjs='cdn',
+            animation_opts={'frame': {'redraw': False}}
+        )
         
-        # 按 package 分组并绘制趋势图
-        packages = df['package'].unique()
-
-
-        # 计算子图的行数和列数
-        num_plots = len(packages)
-        cols = 1
-        rows = num_plots// MAX_ITEMS_EACH_CATEGORY // cols + 1 if num_plots % MAX_ITEMS_EACH_CATEGORY != 0 or MAX_ITEMS_EACH_CATEGORY==1 else num_plots// MAX_ITEMS_EACH_CATEGORY // cols
-        log.info(f"draw_pss_report, num_plots={num_plots}, rows={rows}, cols={cols}")
-        # 创建子图
-        fig, axs = plt.subplots(rows, cols, figsize=(12, 12 * rows))
-        # 遍历每一列并绘图
-        for index, package  in enumerate(packages):
-            package_data = df[df['package'] == package]
-            ax_row = index// MAX_ITEMS_EACH_CATEGORY // cols
-            ax_coloum = index // MAX_ITEMS_EACH_CATEGORY % cols
-            if rows > 1 and cols > 1:
-                ax = axs[ax_row][ax_coloum]
-            elif rows == 1 and cols > 1:
-                ax = axs[ax_coloum]
-            elif cols == 1 and rows > 1:
-                ax = axs[ax_row]
-            else:
-                ax = axs
-            ax.set_title("PSS by Process in MBs")
-            ax.plot(package_data['datetime'], package_data['pss']//KBYTES_PER_MB, label=package, marker='o', color=Show.get_color(index))
-            ax.legend()
-        if cols == 1 and rows == 1:
-            ax.tick_params(axis='x', labelrotation=30)
-        else:
-            for ax in axs.flatten():
-                ax.tick_params(axis='x', labelrotation=30)
-        plt.tight_layout()
-        h1 = f"PSS by Process, peak {MIN_PSS_TO_DRAW} KBs or above "
-        html_content = Show.gen_html_content(h1)
         html_path = Show.get_html_path(dir)
-        with open(html_path, 'a') as file:
-            file.write(html_content)
-            mpld3.save_html(fig, file)
+        with open(html_path, 'a') as f:  # 追加模式
+            f.write(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+
             
     @staticmethod
     def draw_cpu_report(dir, excel_path):

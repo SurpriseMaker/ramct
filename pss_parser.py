@@ -24,7 +24,7 @@ class PssParser():
 
             for root, dirs, files in os.walk(dir):
                 for file in files:
-                    if 'Stream-e' in file or "aplogcat-events" in file or 'logcat' in file:
+                    if 'Stream-e' in file or "event" in file or 'logcat' in file:
                         file_path = os.path.join(root, file)
                         #log.info(f"Parsing {file_path}")
                         with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -47,6 +47,7 @@ class PssParser():
             
             # 确保'datetime'列为日期时间格式
             df['datetime'] = pd.to_datetime(df['datetime'], format='%m-%d %H:%M:%S')
+            df = df.sort_values('datetime')  # 按时间升序排序
             # new_df = df.pivot(columns='package', values='pss')
     
             # # 使用apply方法并行处理每一列，去除空值并填充到最长长度
